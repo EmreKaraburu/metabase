@@ -3,6 +3,7 @@
   The client is responsible for compiling and validating the generated expressions."
   (:require
    [clojure.string :as str]
+   [metabase.api.common :as api]
    [metabase.metabot.self :as metabot.self]
    [metabase.metabot.settings :as metabot.settings]
    [metabase.metabot.usage :as metabot.usage]
@@ -177,7 +178,9 @@
   Returns `{:expression <source> :name <name>}`. Throws an HTTP error with a plain-text message when
   the request can't be served, including when nothing in the columns or metrics fits or the LLM call fails. The
   managed AI lock's error propagates as it is."
-  [request]
+  [{:keys [columns metrics] :as request}]
+  (api/check-400 (or (seq columns) (seq metrics))
+                 (tru "Provide at least one column or metric."))
   (when-let [reason (metabot.self/llm-call-unavailable-reason required-permission)]
     (throw (unavailable-error reason)))
   (metabot.usage/check-metabase-managed-free-limit!)
