@@ -28,6 +28,8 @@ import type {
   Card,
   Database,
   SummaryGeneratedExpression,
+  TestOperatorSpec,
+  TestQuerySpec,
 } from "metabase-types/api";
 import { createMockCard } from "metabase-types/api/mocks";
 import {
@@ -35,7 +37,10 @@ import {
   createSampleDatabase,
 } from "metabase-types/api/mocks/presets";
 
-import { makeSummaryFormula } from "../../../../../utils/summary-formulas";
+import {
+  getSummaryBreakout,
+  makeSummaryFormula,
+} from "../../../../../utils/summary-formulas";
 import {
   FormulaBarSlotProvider,
   FormulaBarSlotTarget,
@@ -46,7 +51,7 @@ import { getDimensionItems, getValueItems } from "../utils";
 
 jest.unmock("@uiw/react-codemirror");
 
-const FORMULA_QUERY = Lib.createTestQuery(SAMPLE_PROVIDER, {
+const FORMULA_QUERY_SPEC: TestQuerySpec = {
   stages: [
     {
       source: { type: "table", id: ORDERS_ID },
@@ -77,7 +82,17 @@ const FORMULA_QUERY = Lib.createTestQuery(SAMPLE_PROVIDER, {
       breakouts: [{ type: "column", name: "Order date", unit: "year" }],
     },
   ],
-});
+};
+
+const FORMULA_QUERY = Lib.createTestQuery(SAMPLE_PROVIDER, FORMULA_QUERY_SPEC);
+
+function sumOf(name: string): TestOperatorSpec {
+  return {
+    type: "operator",
+    operator: "sum",
+    args: [{ type: "column", name }],
+  };
+}
 
 type SetupOpts = {
   database?: Database;
@@ -567,6 +582,124 @@ describe("editing a formula chip", () => {
     expect(onQueryChange).toHaveBeenCalledTimes(2);
     const [afterRemoval] = onQueryChange.mock.calls[1];
     expect(Lib.expressions(afterRemoval, -1)).toHaveLength(0);
+  });
+
+  it("keeps both groupings when the edited formula is grouped twice", async () => {
+    const query = Lib.createTestQuery(SAMPLE_PROVIDER, {
+      stages: [
+        {
+          ...FORMULA_QUERY_SPEC.stages[0],
+          breakouts: [
+            { type: "column", name: "Order date", unit: "year" },
+            { type: "column", name: "Order date", unit: "month" },
+          ],
+        },
+      ],
+    });
+    const [, monthBreakout] = Lib.breakouts(query, -1);
+    const formula = makeSummaryFormula(query, -1, "Order date");
+    const { onQueryChange } = await setup({
+      query,
+      generatedExpressions: formula
+        ? [
+            {
+              ...formula,
+              breakoutOptions: getSummaryBreakout(query, -1, monthBreakout)
+                ?.options,
+            },
+          ]
+        : [],
+    });
+    const yearChipName = "Edit the formula of Order date: Year";
+    expect(
+      screen.queryByRole("button", { name: yearChipName }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(getFormulaChip("Order date: Month"));
+    await expectFormula('datetimeAdd([Created At], 1, "day")');
+    await changeFormula('datetimeAdd([Created At], 2, "day")');
+    await userEvent.keyboard("{Enter}");
+    await expectClosed();
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+    const [nextQuery] = onQueryChange.mock.calls[0];
+    expect(getDimensionItems(nextQuery, -1).map((item) => item.label)).toEqual([
+      "Order date: Year",
+      "Order date: Month",
+    ]);
+    expect(Lib.expressions(nextQuery, -1)).toHaveLength(1);
+    expect(getFormulaChip("Order date: Month")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: yearChipName }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("closes the bar when the removed chip's column name passes to another formula", async () => {
+    const { onQueryChange } = await setup({
+      query: Lib.createTestQuery(SAMPLE_PROVIDER, {
+        stages: [
+          {
+            source: { type: "table", id: ORDERS_ID },
+            aggregations: [
+              { name: "Formula", value: sumOf("TOTAL") },
+              {
+                name: "Formula",
+                value: { type: "operator", operator: "count" },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const [firstChip] = screen.getAllByRole("button", {
+      name: "Edit the formula of Formula",
+    });
+    await userEvent.click(firstChip);
+    await expectFormula("Sum([Total])");
+    const [removeFirst] = screen.getAllByRole("button", {
+      name: "Remove Formula",
+    });
+    await userEvent.click(removeFirst);
+    await expectClosed();
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+    const [nextQuery] = onQueryChange.mock.calls[0];
+    const [aggregation] = Lib.aggregations(nextQuery, -1);
+    expect(Lib.aggregations(nextQuery, -1)).toHaveLength(1);
+    expect(
+      await format(aggregation, { query: nextQuery, stageIndex: -1 }),
+    ).toBe("Count()");
+  });
+
+  it("opens a long formula on one line", async () => {
+    await setup({
+      query: Lib.createTestQuery(SAMPLE_PROVIDER, {
+        stages: [
+          {
+            source: { type: "table", id: ORDERS_ID },
+            aggregations: [
+              {
+                name: "Long",
+                value: {
+                  type: "operator",
+                  operator: "+",
+                  args: [
+                    "TOTAL",
+                    "SUBTOTAL",
+                    "TAX",
+                    "DISCOUNT",
+                    "QUANTITY",
+                    "TOTAL",
+                  ].map(sumOf),
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    await userEvent.click(getFormulaChip("Long"));
+    await expectFormula(
+      "Sum([Total]) + Sum([Subtotal]) + Sum([Tax]) + Sum([Discount]) + Sum([Quantity]) + Sum([Total])",
+    );
+    expect(getEditor()?.state.doc.lines).toBe(1);
   });
 
   it("applies the default bucket when the edited formula drops the old one", async () => {

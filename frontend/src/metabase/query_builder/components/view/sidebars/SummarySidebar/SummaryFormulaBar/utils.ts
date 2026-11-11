@@ -1,12 +1,28 @@
 import type { NamedExpression } from "metabase/querying/components/FormulaEditor";
+import { stableStringify } from "metabase/utils/objects";
 import { checkNotNull } from "metabase/utils/types";
 import * as Lib from "metabase-lib";
 import { getUniqueExpressionName } from "metabase-lib/v1/queries/utils/expression";
 
+import {
+  getLegacyStage,
+  makeSummaryFormula,
+} from "../../../../../utils/summary-formulas";
 import type { SummaryWellId } from "../types";
 import { getDimensionItems, getValueItems } from "../utils";
 
 import type { SummaryFormula } from "./types";
+
+function findFormulaColumn(
+  query: Lib.Query,
+  stageIndex: number,
+  name: string,
+): Lib.ColumnMetadata | undefined {
+  return Lib.breakoutableColumns(query, stageIndex).find((column) => {
+    const info = Lib.displayInfo(query, stageIndex, column);
+    return info.isCalculated && info.displayName === name;
+  });
+}
 
 export function addSummaryFormula(
   query: Lib.Query,
@@ -23,17 +39,25 @@ export function addSummaryFormula(
   }
   const uniqueName = getUniqueExpressionName(query, stageIndex, name);
   const nextQuery = Lib.expression(query, stageIndex, uniqueName, clause);
-  const column = Lib.breakoutableColumns(nextQuery, stageIndex).find(
-    (column) => {
-      const info = Lib.displayInfo(nextQuery, stageIndex, column);
-      return info.isCalculated && info.displayName === uniqueName;
-    },
-  );
+  const column = findFormulaColumn(nextQuery, stageIndex, uniqueName);
   return Lib.breakout(
     nextQuery,
     stageIndex,
     Lib.withDefaultBucket(nextQuery, stageIndex, checkNotNull(column)),
   );
+}
+
+function getAggregationSignature(
+  query: Lib.Query,
+  stageIndex: number,
+  index: number,
+): string | undefined {
+  const aggregations: unknown = getLegacyStage(query, stageIndex)?.aggregation;
+  if (!Array.isArray(aggregations)) {
+    return undefined;
+  }
+  const aggregation: unknown = aggregations[index];
+  return stableStringify(aggregation);
 }
 
 export function findSummaryFormula(
@@ -43,10 +67,11 @@ export function findSummaryFormula(
   key: string,
 ): SummaryFormula | null {
   if (wellId === "values") {
-    const item = getValueItems(query, stageIndex).find(
-      (item) => item.key === key,
-    );
-    if (item?.kind !== "expression") {
+    const items = getValueItems(query, stageIndex);
+    const index = items.findIndex((item) => item.key === key);
+    const item = items[index];
+    const signature = getAggregationSignature(query, stageIndex, index);
+    if (item?.kind !== "expression" || signature == null) {
       return null;
     }
     const { displayName, isNamed } = Lib.displayInfo(
@@ -57,6 +82,7 @@ export function findSummaryFormula(
     return {
       wellId,
       key,
+      signature,
       clause: item.clause,
       name: isNamed ? displayName : undefined,
     };
@@ -67,12 +93,12 @@ export function findSummaryFormula(
   if (!item?.expression) {
     return null;
   }
-  return {
-    wellId,
-    key,
-    clause: item.expression,
-    name: Lib.displayInfo(query, stageIndex, item.expression).displayName,
-  };
+  const name = Lib.displayInfo(query, stageIndex, item.expression).displayName;
+  const signature = makeSummaryFormula(query, stageIndex, name)?.expression;
+  if (signature == null) {
+    return null;
+  }
+  return { wellId, key, signature, clause: item.expression, name };
 }
 
 function getFormulaBreakouts(
@@ -155,9 +181,15 @@ export function replaceSummaryFormula(
   if (formula.wellId === "values") {
     return nextQuery;
   }
-  // Lib keeps a grouping's bucket through a rename only, not through a changed formula.
+  // Lib keeps a grouping's bucket through a rename only. A changed formula leaves bare
+  // references, and groupings that became duplicates of each other are dropped.
   const previousBreakouts = getFormulaBreakouts(query, stageIndex, formulaName);
-  return getFormulaBreakouts(nextQuery, stageIndex, formulaName).reduce(
+  const currentBreakouts = getFormulaBreakouts(
+    nextQuery,
+    stageIndex,
+    formulaName,
+  );
+  const rebucketedQuery = currentBreakouts.reduce(
     (currentQuery, breakout, index) => {
       const column = Lib.breakoutColumn(currentQuery, stageIndex, breakout);
       if (!column) {
@@ -177,4 +209,17 @@ export function replaceSummaryFormula(
     },
     nextQuery,
   );
+  return previousBreakouts
+    .slice(currentBreakouts.length)
+    .reduce((currentQuery, previousBreakout) => {
+      const column = findFormulaColumn(currentQuery, stageIndex, formulaName);
+      if (!column) {
+        return currentQuery;
+      }
+      return Lib.breakout(
+        currentQuery,
+        stageIndex,
+        withPreviousBucket(currentQuery, stageIndex, column, previousBreakout),
+      );
+    }, rebucketedQuery);
 }

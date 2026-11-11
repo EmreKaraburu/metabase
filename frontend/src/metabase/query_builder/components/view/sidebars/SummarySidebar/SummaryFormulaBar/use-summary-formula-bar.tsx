@@ -67,18 +67,18 @@ export function useSummaryFormulaBar({
     slot && databaseId != null ? { id: databaseId } : skipToken,
   );
   const activeDraft = ownership.isActive ? draft : null;
-  const editedFormula = useMemo(
-    () =>
-      activeDraft?.kind === "edit"
-        ? findSummaryFormula(
-            query,
-            stageIndex,
-            activeDraft.wellId,
-            activeDraft.itemKey,
-          )
-        : null,
-    [query, stageIndex, activeDraft],
-  );
+  const editedFormula = useMemo(() => {
+    if (activeDraft?.kind !== "edit") {
+      return null;
+    }
+    const formula = findSummaryFormula(
+      query,
+      stageIndex,
+      activeDraft.wellId,
+      activeDraft.itemKey,
+    );
+    return formula?.signature === activeDraft.signature ? formula : null;
+  }, [query, stageIndex, activeDraft]);
   const openDraft =
     activeDraft?.kind === "new" || editedFormula ? activeDraft : null;
 
@@ -171,9 +171,17 @@ export function useSummaryFormulaBar({
     inputRef.current = input;
     nextKey.current += 1;
     const key = nextKey.current;
-    setDraft({ kind: "edit", key, wellId, itemKey, source: "" });
+    setDraft({
+      kind: "edit",
+      key,
+      wellId,
+      itemKey,
+      signature: formula.signature,
+      source: "",
+    });
     ownership.open();
-    format(formula.clause, { query, stageIndex })
+    // the bar holds one line, so the printer must not wrap
+    format(formula.clause, { query, stageIndex, printWidth: Infinity })
       .catch(() => null)
       .then((source) => {
         // a formula opened since, new or edited, has taken the bar
