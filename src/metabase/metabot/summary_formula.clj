@@ -9,37 +9,80 @@
    [metabase.metabot.tools.shared.llm-shape :as llm-shape]
    [metabase.metabot.usage :as metabot.usage]
    [metabase.util :as u]
-   [metabase.util.i18n :refer [tru]]
-   [metabase.util.log :as log]))
+   [metabase.util.i18n :refer [deferred-tru tru]]
+   [metabase.util.log :as log]
+   [metabase.util.malli :as mu]
+   [metabase.util.malli.registry :as mr]
+   [metabase.util.malli.schema :as ms]))
 
 (def ^:private required-permission :permission/metabot-nlq)
 
-(def max-prompt-chars
+(def ^:private max-prompt-chars
   "Limit the length of a request's natural-language prompt, in characters."
   500)
 
-(def max-columns
+(def ^:private max-columns
   "The most columns a request can list."
   200)
 
-(def max-metrics
+(def ^:private max-metrics
   "The most metrics a request can list."
   200)
 
-(def max-string-input-chars
+(def ^:private max-string-input-chars
   "Limit the length of input names and type hints, in characters."
   255)
-
-(def ^:private valid-column-type-re
-  #"[A-Za-z0-9 _./-]+")
-
-(def max-name-chars
-  "Limit the length of a drafted formula's name, in characters."
-  60)
 
 (def ^:private max-formula-tokens
   ;; a formula needs a few dozen tokens, but reasoning models spend this budget before the forced tool call
   1024)
+
+(def ^:private max-name-chars
+  "Limit the length of a drafted formula's name, in characters."
+  60)
+
+(mr/def ::capped-non-blank-string
+  [:and ms/NonBlankString [:string {:max max-string-input-chars}]])
+
+(mr/def ::column-type
+  [:and
+   ::capped-non-blank-string
+   (mu/with-api-error-message
+    [:re #"\A[A-Za-z0-9 _./-]+\z"]
+    (deferred-tru "Column types can only have letters, digits, spaces and _ . / -"))])
+
+(mr/def ::request-schema
+  [:and
+   [:map {:closed true}
+    [:mode        [:enum "aggregation" "expression"]]
+    [:prompt      [:and ms/NonBlankString [:string {:max max-prompt-chars}]]]
+    [:columns     [:sequential {:max max-columns}
+                   [:map {:closed true}
+                    [:name ::capped-non-blank-string]
+                    [:type {:optional true} [:maybe ::column-type]]]]]
+    [:metrics     {:optional true}
+     [:maybe [:sequential {:max max-metrics} ::capped-non-blank-string]]]
+    [:table_name  {:optional true} [:maybe ::capped-non-blank-string]]
+    [:database_id ms/PositiveInt]]
+   [:multi {:dispatch :mode}
+    ["expression"
+     [:and
+      (mu/with-api-error-message
+       [:fn (fn [{:keys [metrics]}] (empty? metrics))]
+       (deferred-tru "Metrics can only be used in aggregation mode."))
+      (mu/with-api-error-message
+       [:fn (fn [{:keys [columns]}] (seq columns))]
+       (deferred-tru "Provide at least one column."))]]
+    ["aggregation"
+     (mu/with-api-error-message
+      [:fn (fn [{:keys [columns metrics]}] (or (seq columns) (seq metrics)))]
+      (deferred-tru "Provide at least one column or metric."))]
+    [:malli.core/default :any]]])
+
+(mr/def ::response-schema
+  [:map {:closed true}
+   [:expression ms/NonBlankString]
+   [:name       [:and ms/NonBlankString [:string {:max max-name-chars}]]]])
 
 (def ^:private formula-json-schema
   {:type                 "object"
@@ -215,7 +258,7 @@
                aggregation-system-prompt)}
    {:role "user" :content (user-message request)}])
 
-(defn suggest-formula
+(mu/defn suggest-formula :- ::response-schema
   "Draft a custom expression for `prompt`, a natural-language phrase typed into a summary well. `mode` is
   `\"aggregation\"` for Values or `\"expression\"` for the custom columns Rows and Columns group by. `columns` are maps
   of `:name` (the column's name in expression syntax, without brackets) and an optional `:type`. `database_id` is the
@@ -226,17 +269,7 @@
   managed AI lock's error propagates as it is. Metrics are aggregations, so expression mode rejects them and needs at
   least one column. The prompt, table name and column types are XML-escaped, and a column or metric that contains its
   own block's tag is left out with a warning."
-  [{:keys [mode columns metrics database_id] :as request}]
-  (api/check-400 (every? #(or (nil? %) (re-matches valid-column-type-re %)) (map :type columns))
-                 (tru "Column types can only have letters, digits, spaces and _ . / -"))
-  (if (= mode "expression")
-    (do
-      (api/check-400 (empty? metrics)
-                     (tru "Metrics can only be used in aggregation mode."))
-      (api/check-400 (seq columns)
-                     (tru "Provide at least one column.")))
-    (api/check-400 (or (seq columns) (seq metrics))
-                   (tru "Provide at least one column or metric.")))
+  [{:keys [database_id] :as request} :- ::request-schema]
   (when-let [reason (metabot.self/llm-call-unavailable-reason required-permission)]
     (throw (unavailable-error reason)))
   (metabot.usage/check-metabase-managed-free-limit!)
