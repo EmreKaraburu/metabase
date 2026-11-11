@@ -9,7 +9,7 @@ import {
   getSummaryBreakout,
   reconcileSummaryFormulas,
 } from "../../../../../utils/summary-formulas";
-import type { SummaryFormulaInput } from "../SummaryFormulaBar";
+import type { SummaryFormula, SummaryFormulaInput } from "../SummaryFormulaBar";
 import S from "../SummarySidebar.module.css";
 import type {
   SummaryDragItem,
@@ -40,6 +40,7 @@ type SummaryWellsProps = {
   sections: SummaryFieldSection[];
   formulaInputs?: Partial<Record<SummaryWellId, SummaryFormulaInput>>;
   draftFormula?: (DraftFormulaChipProps & { wellId: SummaryWellId }) | null;
+  editedFormula?: SummaryFormula | null;
   generatedExpressions?: SummaryGeneratedExpression[];
   draggedItem: SummaryDragItem | null;
   onPick: (wellId: SummaryWellId, field: SummaryField) => void;
@@ -52,6 +53,7 @@ export function SummaryWells({
   sections,
   formulaInputs,
   draftFormula,
+  editedFormula = null,
   generatedExpressions = [],
   draggedItem,
   onPick,
@@ -59,6 +61,10 @@ export function SummaryWells({
 }: SummaryWellsProps) {
   const valueInputRef = useRef<HTMLInputElement>(null);
   const columnInputRef = useRef<HTMLInputElement>(null);
+  const valueFormulaInput = formulaInputs?.values;
+  const columnFormulaInput = formulaInputs?.columns;
+  const isEditing = (wellId: SummaryWellId, key: string) =>
+    editedFormula?.wellId === wellId && editedFormula.key === key;
   const formulas = useMemo(
     () =>
       reconcileSummaryFormulas(query, generatedExpressions).filter(
@@ -108,7 +114,7 @@ export function SummaryWells({
         <SummaryWellInput
           wellId="values"
           inputRef={valueInputRef}
-          formulaInput={formulaInputs?.values}
+          formulaInput={valueFormulaInput}
           sections={valueSections}
           hasItems={valueItems.length > 0}
           autoFocus
@@ -126,6 +132,11 @@ export function SummaryWells({
               query={query}
               stageIndex={stageIndex}
               item={item}
+              isEditing={isEditing("values", item.key)}
+              onEdit={
+                valueFormulaInput &&
+                (() => valueFormulaInput.edit(item.key, valueInputRef.current))
+              }
               onChange={onChange}
               onFocusInput={() => valueInputRef.current?.focus()}
               onRemove={() => handleRemove(item.clause)}
@@ -144,7 +155,7 @@ export function SummaryWells({
         <SummaryWellInput
           wellId="columns"
           inputRef={columnInputRef}
-          formulaInput={formulaInputs?.columns}
+          formulaInput={columnFormulaInput}
           sections={columnSections}
           hasItems={dimensionItems.length > 0}
           onPick={(field) => onPick("columns", field)}
@@ -168,6 +179,12 @@ export function SummaryWells({
                     formula.name === breakout?.name &&
                     formula.breakoutOptions === breakout?.options,
                 )}
+                isEditing={isEditing("columns", item.key)}
+                onEdit={
+                  columnFormulaInput &&
+                  (() =>
+                    columnFormulaInput.edit(item.key, columnInputRef.current))
+                }
                 onChange={onChange}
                 onFocusInput={() => columnInputRef.current?.focus()}
                 onRemove={() => handleRemove(item.clause)}

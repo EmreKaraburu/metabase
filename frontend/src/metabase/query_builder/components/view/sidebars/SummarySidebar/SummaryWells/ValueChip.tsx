@@ -22,6 +22,8 @@ type ValueChipProps = {
   query: Lib.Query;
   stageIndex: number;
   item: SummaryValueItem;
+  isEditing: boolean;
+  onEdit?: () => void;
   onChange: (nextQuery: Lib.Query) => void;
   onRemove: () => void;
   onFocusInput: () => void;
@@ -31,6 +33,8 @@ export function ValueChip({
   query,
   stageIndex,
   item,
+  isEditing,
+  onEdit,
   onChange,
   onRemove,
   onFocusInput,
@@ -39,6 +43,8 @@ export function ValueChip({
     return (
       <FormulaChip
         drag={{ kind: "value", item }}
+        isEditing={isEditing}
+        onEdit={onEdit}
         onRemove={onRemove}
         onFocusInput={onFocusInput}
         onRename={(name) =>

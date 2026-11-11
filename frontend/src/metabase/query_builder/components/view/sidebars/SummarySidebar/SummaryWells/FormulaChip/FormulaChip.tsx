@@ -13,6 +13,9 @@ import styles from "./FormulaChip.module.css";
 type FormulaChipProps = {
   drag: Exclude<SummaryDragItem, { kind: "field" }>;
   name?: string;
+  isEditing: boolean;
+  /** Absent when the database can't take formulas in this well. */
+  onEdit?: () => void;
   onRename: (name: string) => void;
   onRemove: () => void;
   onFocusInput: () => void;
@@ -21,6 +24,8 @@ type FormulaChipProps = {
 export function FormulaChip({
   drag,
   name = drag.item.label,
+  isEditing,
+  onEdit,
   onRename,
   onRemove,
   onFocusInput,
@@ -58,7 +63,7 @@ export function FormulaChip({
     <WellChip
       drag={drag}
       isDragDisabled={isRenaming}
-      className={cx({ [styles.renaming]: isRenaming })}
+      className={cx({ [styles.selected]: isRenaming || isEditing })}
       onRemove={() => {
         finishRenaming(false);
         onRemove();
@@ -92,14 +97,11 @@ export function FormulaChip({
       ) : (
         <UnstyledButton
           className={S.chipButton}
-          aria-label={t`Rename ${label}`}
+          aria-label={t`Edit the formula of ${label}`}
+          onClick={onEdit}
           onDoubleClick={startRenaming}
           onKeyDown={(event) => {
-            if (
-              event.key === "Enter" ||
-              event.key === "F2" ||
-              event.key === " "
-            ) {
+            if (event.key === "F2") {
               event.preventDefault();
               startRenaming();
             }

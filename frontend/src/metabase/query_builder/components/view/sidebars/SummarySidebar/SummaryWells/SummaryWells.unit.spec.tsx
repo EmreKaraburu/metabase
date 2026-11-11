@@ -151,8 +151,8 @@ describe("SummaryWells", () => {
         screen.getByRole("button", {
           name:
             name === "Order date"
-              ? "Rename Order date: Month"
-              : `Rename ${name}`,
+              ? "Edit the formula of Order date: Month"
+              : `Edit the formula of ${name}`,
         }),
       );
       const input = screen.getByRole("textbox", { name: `Name of ${name}` });
@@ -210,7 +210,9 @@ describe("SummaryWells", () => {
       formulaNames: ["Order date"],
     });
     await userEvent.dblClick(
-      screen.getByRole("button", { name: "Rename Order date: Month" }),
+      screen.getByRole("button", {
+        name: "Edit the formula of Order date: Month",
+      }),
     );
     await userEvent.keyboard("Discard this name{Escape}");
     expect(onChange).not.toHaveBeenCalled();
@@ -219,14 +221,18 @@ describe("SummaryWells", () => {
     ).not.toBeInTheDocument();
 
     await userEvent.dblClick(
-      screen.getByRole("button", { name: "Rename Order date: Month" }),
+      screen.getByRole("button", {
+        name: "Edit the formula of Order date: Month",
+      }),
     );
     await userEvent.keyboard("{Backspace}");
     await userEvent.click(getGroupingField());
     expect(onChange).not.toHaveBeenCalled();
 
     await userEvent.dblClick(
-      screen.getByRole("button", { name: "Rename Order date: Month" }),
+      screen.getByRole("button", {
+        name: "Edit the formula of Order date: Month",
+      }),
     );
     await userEvent.keyboard("Existing formula");
     await userEvent.click(getGroupingField());
@@ -266,7 +272,9 @@ describe("SummaryWells", () => {
     }
     expect(onChange).not.toHaveBeenCalled();
     await userEvent.dblClick(
-      screen.getByRole("button", { name: "Rename Order date: Month" }),
+      screen.getByRole("button", {
+        name: "Edit the formula of Order date: Month",
+      }),
     );
     expect(
       screen.getByRole("textbox", { name: "Name of Order date" }),

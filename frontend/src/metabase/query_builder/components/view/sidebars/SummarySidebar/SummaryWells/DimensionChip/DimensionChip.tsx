@@ -14,6 +14,8 @@ type DimensionChipProps = {
   stageIndex: number;
   item: SummaryDimensionItem;
   canRename: boolean;
+  isEditing: boolean;
+  onEdit?: () => void;
   onChange: (nextQuery: Lib.Query, options?: SummaryQueryChangeOptions) => void;
   onRemove: () => void;
   onFocusInput: () => void;
@@ -24,6 +26,8 @@ export function DimensionChip({
   stageIndex,
   item,
   canRename,
+  isEditing,
+  onEdit,
   onChange,
   onRemove,
   onFocusInput,
@@ -54,6 +58,8 @@ export function DimensionChip({
       <FormulaChip
         drag={{ kind: "dimension", item }}
         name={currentName}
+        isEditing={isEditing}
+        onEdit={onEdit}
         onRename={handleRename}
         onRemove={onRemove}
         onFocusInput={onFocusInput}

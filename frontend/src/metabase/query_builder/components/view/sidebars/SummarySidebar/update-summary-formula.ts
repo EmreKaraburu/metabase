@@ -3,6 +3,7 @@ import * as Lib from "metabase-lib";
 import type { SummaryGeneratedExpression } from "metabase-types/api";
 
 import {
+  getSummaryBreakout,
   makeSummaryFormula,
   reconcileSummaryFormulas,
 } from "../../../../utils/summary-formulas";
@@ -25,28 +26,36 @@ export function updateSummaryFormula({
   generatedExpressions,
   createdFormula,
   renamedExpression,
+  editedFormula,
 }: Options) {
   const index =
     stageIndex < 0 ? Lib.stageCount(query) + stageIndex : stageIndex;
   const owned = reconcileSummaryFormulas(query, generatedExpressions);
-  let formulas = owned
-    .map((formula) => {
-      if (
-        formula.stageIndex === index &&
-        formula.name === renamedExpression?.from
-      ) {
-        const renamed = makeSummaryFormula(
-          nextQuery,
-          index,
-          renamedExpression.to,
-        );
-        return (
-          renamed && { ...renamed, breakoutOptions: formula.breakoutOptions }
-        );
-      }
+  const updateFormula = (formula: SummaryGeneratedExpression) => {
+    if (formula.stageIndex !== index) {
       return formula;
-    })
-    .filter(isNotNull);
+    }
+    if (formula.name === renamedExpression?.from) {
+      const renamed = makeSummaryFormula(
+        nextQuery,
+        index,
+        renamedExpression.to,
+      );
+      return (
+        renamed && { ...renamed, breakoutOptions: formula.breakoutOptions }
+      );
+    }
+    if (formula.name === editedFormula) {
+      const edited = makeSummaryFormula(nextQuery, index, formula.name);
+      // an edit can change the grouping's bucket; a lost one is matched again when unambiguous
+      const breakoutOptions = hasBreakout(nextQuery, index, formula)
+        ? formula.breakoutOptions
+        : undefined;
+      return edited && { ...edited, breakoutOptions };
+    }
+    return formula;
+  };
+  let formulas = owned.map(updateFormula).filter(isNotNull);
 
   if (createdFormula) {
     const existingNames = Lib.expressions(query, index).map(
@@ -86,4 +95,15 @@ export function updateSummaryFormula({
     query: cleanedQuery,
     generatedExpressions: reconcileSummaryFormulas(cleanedQuery, formulas),
   };
+}
+
+function hasBreakout(
+  query: Lib.Query,
+  stageIndex: number,
+  { name, breakoutOptions }: SummaryGeneratedExpression,
+): boolean {
+  return Lib.breakouts(query, stageIndex).some((clause) => {
+    const breakout = getSummaryBreakout(query, stageIndex, clause);
+    return breakout?.name === name && breakout.options === breakoutOptions;
+  });
 }

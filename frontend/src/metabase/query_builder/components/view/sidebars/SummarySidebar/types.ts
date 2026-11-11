@@ -7,6 +7,8 @@ export type SummaryWellId = "values" | "columns";
 export type SummaryQueryChangeOptions = {
   createdFormula?: boolean;
   renamedExpression?: { from: string; to: string };
+  /** The name of an owned formula whose definition changed. */
+  editedFormula?: string;
 };
 
 export type SummaryField =
