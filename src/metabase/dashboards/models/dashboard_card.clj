@@ -4,6 +4,7 @@
    [medley.core :as m]
    [metabase.dashboards.db :as dashboards.db]
    [metabase.dashboards.schema :as dashboards.schema]
+   [metabase.lib-be.core :as lib-be]
    [metabase.lib.core :as lib]
    [metabase.lib.schema.visualization-settings :as lib.schema.visualization-settings]
    [metabase.models.interface :as mi]
@@ -32,7 +33,7 @@
 
 (t2/deftransforms :model/DashboardCard
   {:parameter_mappings     parameters/transform-parameter-mappings
-   :visualization_settings mi/transform-visualization-settings
+   :visualization_settings lib-be/transform-visualization-settings
    :inline_parameters      mi/transform-json})
 
 (defn- validate-link-card-entity-id
