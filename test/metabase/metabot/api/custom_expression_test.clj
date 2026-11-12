@@ -113,6 +113,40 @@
        (is (= "Nothing in this data matches that."
               (mt/user-http-request :rasta :post 422 endpoint (request-body))))))))
 
+(deftest summary-formula-unescapes-xml-entities-test
+  (testing "POST /api/metabot/custom-expression/summary-formula decodes XML entities the LLM copies from its escaped input"
+    (do-with-llm
+     {:expression "CountIf([Total] &gt; 100 and [Total] &lt;= 500 and [Note] = \"&amp;gt;\")" :name "Big &amp; small"}
+     (fn [_calls]
+       (is (= {:expression "CountIf([Total] > 100 and [Total] <= 500 and [Note] = \"&gt;\")" :name "Big & small"}
+              (mt/user-http-request :rasta :post 200 endpoint (request-body))))))))
+
+(deftest summary-formula-metrics-are-aggregations-prompt-test
+  (testing "POST /api/metabot/custom-expression/summary-formula tells the LLM not to wrap metrics in aggregation functions"
+    (do-with-llm
+     {:expression "[Revenue] / Count" :name "Revenue per order"}
+     (fn [calls]
+       (mt/user-http-request :rasta :post 200 endpoint (request-body))
+       (is (str/includes? (:system (llm-prompts calls))
+                          "Never wrap a metric in another aggregation function"))))))
+
+(deftest summary-formula-datetime-diff-order-prompt-test
+  (testing "POST /api/metabot/custom-expression/summary-formula tells the LLM the order of datetimeDiff arguments"
+    (doseq [mode ["aggregation" "expression"]]
+      (testing mode
+        (do-with-llm
+         {:expression "Count" :name "Count"}
+         (fn [calls]
+           (mt/user-http-request :rasta :post 200 endpoint (request-body {:mode mode :metrics nil :measures nil}))
+           (is (str/includes? (:system (llm-prompts calls))
+                              "datetimeDiff([Start], [End], unit) is positive when End is after Start"))))))))
+
+(deftest ^:parallel system-prompts-call-zero-argument-functions-test
+  (testing "the summary formula system prompts write zero-argument functions with parentheses, which the client requires"
+    (doseq [prompt-var [#'custom-expression/aggregation-system-prompt #'custom-expression/expression-system-prompt]]
+      (testing prompt-var
+        (is (nil? (re-find #"\b(?:Count|CumulativeCount|now)\b(?!\()" @prompt-var)))))))
+
 ;;; ------------------------------------------------- LLM input -------------------------------------------------
 
 (deftest summary-formula-llm-input-test
