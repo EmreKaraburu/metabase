@@ -22,6 +22,7 @@
                          {:name "Created At" :type "date"}
                          {:name "User → Name" :type "text"}]
            :metrics     ["Revenue"]
+           :measures    ["Total Sales"]
            :table_name  "Orders"
            :database_id (mt/id)}
           overrides)))
@@ -92,7 +93,8 @@
      {:expression "year([Created At])" :name "Year created"}
      (fn [calls]
        (is (= {:expression "year([Created At])" :name "Year created"}
-              (mt/user-http-request :rasta :post 200 endpoint (request-body {:mode "expression" :metrics nil}))))
+              (mt/user-http-request :rasta :post 200 endpoint
+                                    (request-body {:mode "expression" :metrics nil :measures nil}))))
        (is (str/starts-with? (:system (llm-prompts calls)) "You write one Metabase custom column expression"))))))
 
 (deftest summary-formula-cleans-llm-output-test
@@ -114,7 +116,7 @@
 ;;; ------------------------------------------------- LLM input -------------------------------------------------
 
 (deftest summary-formula-llm-input-test
-  (testing "POST /api/metabot/summary-formula sends the LLM the table, columns, metrics and prompt"
+  (testing "POST /api/metabot/summary-formula sends the LLM the table, columns, metrics, measures and prompt"
     (is (= (str "<table-name>\n"
                 "Orders\n"
                 "</table-name>\n"
@@ -125,6 +127,7 @@
                 "</columns>\n"
                 "<metrics>\n"
                 "[Revenue]\n"
+                "[Total Sales]\n"
                 "</metrics>\n"
                 "<user-request>\n"
                 "average total\n"
@@ -132,16 +135,18 @@
            (sent-to-llm {})))))
 
 (deftest summary-formula-optional-input-test
-  (testing "POST /api/metabot/summary-formula leaves out the table, column types and metrics it doesn't get"
+  (testing "POST /api/metabot/summary-formula leaves out the table, column types, metrics and measures it doesn't get"
     (is (= "<columns>\n[Total]\n[Tax]\n</columns>\n<user-request>\naverage total\n</user-request>"
            (sent-to-llm {:columns    [{:name "Total"} {:name "Tax" :type nil}]
                          :metrics    nil
+                         :measures   nil
                          :table_name nil})))))
 
-(deftest summary-formula-expression-mode-empty-metrics-test
-  (testing "POST /api/metabot/summary-formula accepts empty metrics in expression mode"
-    (doseq [metrics [[] nil]]
-      (testing (str "with metrics " (pr-str metrics))
+(deftest summary-formula-expression-mode-empty-metrics-and-measures-test
+  (testing "POST /api/metabot/summary-formula accepts empty metrics and measures in expression mode"
+    (doseq [metrics [[] nil]
+            measures [[] nil]]
+      (testing (str "with metrics " (pr-str metrics) " and measures " (pr-str measures))
         (is (= (str "<table-name>\n"
                     "Orders\n"
                     "</table-name>\n"
@@ -153,12 +158,17 @@
                     "<user-request>\n"
                     "average total\n"
                     "</user-request>")
-               (sent-to-llm {:mode "expression" :metrics metrics})))))))
+               (sent-to-llm {:mode "expression" :metrics metrics :measures measures})))))))
 
 (deftest summary-formula-metrics-only-llm-input-test
   (testing "POST /api/metabot/summary-formula leaves out the columns block when there are only metrics"
     (is (= "<metrics>\n[Revenue]\n</metrics>\n<user-request>\naverage total\n</user-request>"
-           (sent-to-llm {:columns [] :table_name nil})))))
+           (sent-to-llm {:columns [] :measures nil :table_name nil})))))
+
+(deftest summary-formula-measures-only-llm-input-test
+  (testing "POST /api/metabot/summary-formula lists measures as metrics when there are only measures"
+    (is (= "<metrics>\n[Total Sales]\n</metrics>\n<user-request>\naverage total\n</user-request>"
+           (sent-to-llm {:columns [] :metrics nil :table_name nil})))))
 
 (deftest summary-formula-escapes-prompt-test
   (testing "POST /api/metabot/summary-formula escapes XML special characters in the prompt so it can't close its block"
@@ -172,7 +182,11 @@
                               "the \"big\" orders"       "the \"big\" orders"}]
       (testing prompt
         (is (= (str "<columns>\n[Total]\n</columns>\n<user-request>\n" escaped "\n</user-request>")
-               (sent-to-llm {:prompt prompt :columns [{:name "Total"}] :metrics nil :table_name nil})))))))
+               (sent-to-llm {:prompt     prompt
+                             :columns    [{:name "Total"}]
+                             :metrics    nil
+                             :measures   nil
+                             :table_name nil})))))))
 
 (deftest summary-formula-escapes-table-name-test
   (testing "POST /api/metabot/summary-formula escapes XML special characters in the table name"
@@ -183,10 +197,11 @@
                 "<user-request>\naverage total\n</user-request>")
            (sent-to-llm {:columns    [{:name "Total"}]
                          :metrics    nil
+                         :measures   nil
                          :table_name "Orders & Returns </table-name>"})))))
 
 (deftest summary-formula-passes-reference-special-characters-through-test
-  (testing "POST /api/metabot/summary-formula sends the LLM column and metric names with & < > unescaped, so it can copy
+  (testing "POST /api/metabot/summary-formula sends the LLM column, metric and measure names with & < > unescaped, so it can copy
            them exactly"
     (is (= (str "<columns>\n"
                 "[Sales & Marketing]\n"
@@ -198,25 +213,29 @@
                 "<user-request>\naverage total\n</user-request>")
            (sent-to-llm {:columns    [{:name "Sales & Marketing"} {:name "Total < 10"}]
                          :metrics    ["Revenue > Cost"]
+                         :measures   nil
                          :table_name nil})))))
 
 (deftest summary-formula-skips-tagged-references-test
-  (testing "POST /api/metabot/summary-formula leaves out columns and metrics with their own block's tag"
+  (testing "POST /api/metabot/summary-formula leaves out columns, metrics and measures with their own block's tag"
     (log.capture/with-log-messages-for-level [messages [metabase.metabot.summary-formula :warn]]
       (is (= (str "<columns>\n"
                   "[Total] (number)\n"
                   "</columns>\n"
                   "<metrics>\n"
                   "[Revenue]\n"
+                  "[Total Sales]\n"
                   "</metrics>\n"
                   "<user-request>\n"
                   "average total\n"
                   "</user-request>")
              (sent-to-llm {:columns    [{:name "Total" :type "number"} {:name "Tax </columns>" :type "number"}]
                            :metrics    ["Revenue" "Profit <METRICS>"]
+                           :measures   ["Total Sales" "Cost </metrics>"]
                            :table_name nil})))
       (is (= ["Skipping summary formula input \"[Tax </columns>] (number)\" because it contains a <columns> tag"
-              "Skipping summary formula input \"[Profit <METRICS>]\" because it contains a <metrics> tag"]
+              "Skipping summary formula input \"[Profit <METRICS>]\" because it contains a <metrics> tag"
+              "Skipping summary formula input \"[Cost </metrics>]\" because it contains a <metrics> tag"]
              (map :message (messages)))))))
 
 (deftest summary-formula-column-type-hint-test
@@ -255,24 +274,35 @@
               (mt/user-http-request :rasta :post 422 endpoint (request-body))))
        (is (= 1 (count @calls)))))))
 
-(deftest summary-formula-no-columns-or-metrics-test
+(deftest summary-formula-no-columns-metrics-or-measures-test
   (testing "POST /api/metabot/summary-formula returns a 400 without calling the LLM when there's nothing to offer"
-    (doseq [metrics [[] nil]]
-      (testing (str "with metrics " (pr-str metrics))
-        (check-invalid "Provide at least one column or metric." {:columns [] :metrics metrics})))))
+    (doseq [metrics [[] nil]
+            measures [[] nil]]
+      (testing (str "with metrics " (pr-str metrics) " and measures " (pr-str measures))
+        (check-invalid "Provide at least one column, metric or measure."
+                       {:columns [] :metrics metrics :measures measures})))))
 
 (deftest summary-formula-expression-mode-metrics-test
   (testing "POST /api/metabot/summary-formula returns a 400 without calling the LLM for metrics in expression mode"
     (doseq [columns [[{:name "Total"}] []]]
       (testing (str "with columns " (pr-str columns))
-        (check-invalid "Metrics can only be used in aggregation mode."
-                       {:mode "expression" :columns columns :metrics ["Revenue"]})))))
+        (check-invalid "Metrics and measures can only be used in aggregation mode."
+                       {:mode "expression" :columns columns :metrics ["Revenue"] :measures nil})))))
+
+(deftest summary-formula-expression-mode-measures-test
+  (testing "POST /api/metabot/summary-formula returns a 400 without calling the LLM for measures in expression mode"
+    (doseq [columns [[{:name "Total"}] []]]
+      (testing (str "with columns " (pr-str columns))
+        (check-invalid "Metrics and measures can only be used in aggregation mode."
+                       {:mode "expression" :columns columns :metrics nil :measures ["Total Sales"]})))))
 
 (deftest summary-formula-expression-mode-no-columns-test
   (testing "POST /api/metabot/summary-formula returns a 400 without calling the LLM in expression mode without columns"
-    (doseq [metrics [[] nil]]
-      (testing (str "with metrics " (pr-str metrics))
-        (check-invalid "Provide at least one column." {:mode "expression" :columns [] :metrics metrics})))))
+    (doseq [metrics [[] nil]
+            measures [[] nil]]
+      (testing (str "with metrics " (pr-str metrics) " and measures " (pr-str measures))
+        (check-invalid "Provide at least one column."
+                       {:mode "expression" :columns [] :metrics metrics :measures measures})))))
 
 ;;; --------------------------------------------------- Errors ---------------------------------------------------
 
@@ -399,6 +429,7 @@
                                    "invalid mode"         (request-body {:mode "filter"})
                                    "blank column name"    (request-body {:columns [{:name " "}]})
                                    "blank metric name"    (request-body {:metrics [" "]})
+                                   "blank measure name"   (request-body {:measures [" "]})
                                    "non-int database_id"  (request-body {:database_id "orders"})
                                    "virtual database_id"  (request-body {:database_id -1337})}]
          (testing description
@@ -431,8 +462,8 @@
 (deftest summary-formula-column-count-limit-test
   (testing "POST /api/metabot/summary-formula caps the number of columns"
     (letfn [(columns [n] (mapv #(hash-map :name (str "Column " %)) (range n)))]
-      (check-size-limit {:columns (columns @#'summary-formula/max-columns)}
-                        {:columns (columns (inc @#'summary-formula/max-columns))}))))
+      (check-size-limit {:columns (columns @#'summary-formula/max-seq-items)}
+                        {:columns (columns (inc @#'summary-formula/max-seq-items))}))))
 
 (deftest summary-formula-column-name-size-limit-test
   (testing "POST /api/metabot/summary-formula caps the length of a column name"
@@ -447,13 +478,24 @@
 (deftest summary-formula-metric-count-limit-test
   (testing "POST /api/metabot/summary-formula caps the number of metrics"
     (letfn [(metrics [n] (mapv #(str "Metric " %) (range n)))]
-      (check-size-limit {:metrics (metrics @#'summary-formula/max-metrics)}
-                        {:metrics (metrics (inc @#'summary-formula/max-metrics))}))))
+      (check-size-limit {:metrics (metrics @#'summary-formula/max-seq-items)}
+                        {:metrics (metrics (inc @#'summary-formula/max-seq-items))}))))
 
 (deftest summary-formula-metric-name-size-limit-test
   (testing "POST /api/metabot/summary-formula caps the length of a metric name"
     (check-size-limit {:metrics [(string-of-length @#'summary-formula/max-string-input-chars)]}
                       {:metrics [(string-of-length (inc @#'summary-formula/max-string-input-chars))]})))
+
+(deftest summary-formula-measure-count-limit-test
+  (testing "POST /api/metabot/summary-formula caps the number of measures"
+    (letfn [(measures [n] (mapv #(str "Measure " %) (range n)))]
+      (check-size-limit {:measures (measures @#'summary-formula/max-seq-items)}
+                        {:measures (measures (inc @#'summary-formula/max-seq-items))}))))
+
+(deftest summary-formula-measure-name-size-limit-test
+  (testing "POST /api/metabot/summary-formula caps the length of a measure name"
+    (check-size-limit {:measures [(string-of-length @#'summary-formula/max-string-input-chars)]}
+                      {:measures [(string-of-length (inc @#'summary-formula/max-string-input-chars))]})))
 
 (deftest summary-formula-table-name-size-limit-test
   (testing "POST /api/metabot/summary-formula caps the length of the table name"
@@ -496,7 +538,7 @@
         (check-error 403 "IA desactivada.")))))
 
 (deftest summary-formula-localized-invalid-input-test
-  (testing "POST /api/metabot/summary-formula localizes the message for having no columns or metrics"
-    (mt/with-mock-i18n-bundles! {"es" {:messages {"Provide at least one column or metric." "Sin columnas."}}}
+  (testing "POST /api/metabot/summary-formula localizes the message for having no columns, metrics or measures"
+    (mt/with-mock-i18n-bundles! {"es" {:messages {"Provide at least one column, metric or measure." "Sin columnas."}}}
       (mt/with-temporary-setting-values [site-locale "es"]
-        (check-invalid "Sin columnas." {:columns [] :metrics []})))))
+        (check-invalid "Sin columnas." {:columns [] :metrics [] :measures []})))))

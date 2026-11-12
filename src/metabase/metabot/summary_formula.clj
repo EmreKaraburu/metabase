@@ -21,12 +21,8 @@
   "Limit the length of a request's natural-language prompt, in characters."
   500)
 
-(def ^:private max-columns
-  "The most columns a request can list."
-  200)
-
-(def ^:private max-metrics
-  "The most metrics a request can list."
+(def ^:private max-seq-items
+  "Limit the number of items in each request list."
   200)
 
 (def ^:private max-string-input-chars
@@ -56,27 +52,29 @@
    [:map {:closed true}
     [:mode        [:enum "aggregation" "expression"]]
     [:prompt      [:and ms/NonBlankString [:string {:max max-prompt-chars}]]]
-    [:columns     [:sequential {:max max-columns}
+    [:columns     [:sequential {:max max-seq-items}
                    [:map {:closed true}
                     [:name ::capped-non-blank-string]
                     [:type {:optional true} [:maybe ::column-type]]]]]
     [:metrics     {:optional true}
-     [:maybe [:sequential {:max max-metrics} ::capped-non-blank-string]]]
+     [:maybe [:sequential {:max max-seq-items} ::capped-non-blank-string]]]
+    [:measures    {:optional true}
+     [:maybe [:sequential {:max max-seq-items} ::capped-non-blank-string]]]
     [:table_name  {:optional true} [:maybe ::capped-non-blank-string]]
     [:database_id ms/PositiveInt]]
    [:multi {:dispatch :mode}
     ["expression"
      [:and
       (mu/with-api-error-message
-       [:fn (fn [{:keys [metrics]}] (empty? metrics))]
-       (deferred-tru "Metrics can only be used in aggregation mode."))
+       [:fn (fn [{:keys [metrics measures]}] (and (empty? metrics) (empty? measures)))]
+       (deferred-tru "Metrics and measures can only be used in aggregation mode."))
       (mu/with-api-error-message
        [:fn (fn [{:keys [columns]}] (seq columns))]
        (deferred-tru "Provide at least one column."))]]
     ["aggregation"
      (mu/with-api-error-message
-      [:fn (fn [{:keys [columns metrics]}] (or (seq columns) (seq metrics)))]
-      (deferred-tru "Provide at least one column or metric."))]
+      [:fn (fn [{:keys [columns metrics measures]}] (or (seq columns) (seq metrics) (seq measures)))]
+      (deferred-tru "Provide at least one column, metric or measure."))]
     [:malli.core/default :any]]])
 
 (mr/def ::response-schema
@@ -170,11 +168,13 @@
                              (str " (" (llm-shape/escape-xml-content column-type) ")"))))
 
 (defn- user-message
-  [{:keys [prompt columns metrics table_name]}]
+  [{:keys [prompt columns metrics measures table_name]}]
+  ;; metrics and measures are both just named aggregations to the LLM, so they're
+  ;; listed together under "metrics".
   (->> [(format-xml "table-name" (when-not (str/blank? table_name)
                                    [(llm-shape/escape-xml-content table_name)]))
         (remove-xml "columns" (map format-column columns))
-        (remove-xml "metrics" (map #(str "[" % "]") metrics))
+        (remove-xml "metrics" (map #(str "[" % "]") (concat metrics measures)))
         (format-xml "user-request" [(llm-shape/escape-xml-content prompt)])]
        (remove nil?)
        (str/join "\n")))
@@ -261,14 +261,15 @@
 (mu/defn suggest-formula :- ::response-schema
   "Draft a custom expression for `prompt`, a natural-language phrase typed into a summary well. `mode` is
   `\"aggregation\"` for Values or `\"expression\"` for the custom columns Rows and Columns group by. `columns` are maps
-  of `:name` (the column's name in expression syntax, without brackets) and an optional `:type`. `database_id` is the
-  database of the query being summarized, which the current user must be able to query.
+  of `:name` and an optional `:type`, a short hint like `number` made of letters, digits, spaces and `_./-`. Column,
+  metric and measure names are the names the expression editor resolves, without brackets, like `User → Name`.
+  `database_id` is the database of the query being summarized, which the current user must be able to query.
 
-  Returns `{:expression <source> :name <name>}`. Throws an HTTP error with a plain-text message when
-  the request can't be served, including when nothing in the columns or metrics fits or the LLM call fails. The
-  managed AI lock's error propagates as it is. Metrics are aggregations, so expression mode rejects them and needs at
-  least one column. The prompt, table name and column types are XML-escaped, and a column or metric that contains its
-  own block's tag is left out with a warning."
+  Returns `{:expression <source> :name <name>}`. Throws an HTTP error with a plain-text message when the request can't
+  be served, including when nothing in the columns, metrics or measures fits or the LLM call fails. The managed AI
+  lock's error propagates as it is. Metrics and measures are aggregations, so expression mode rejects them
+  and needs at least one column. The prompt, table name and column types are XML-escaped, and a column, metric or
+  measure that contains its own block's tag is left out with a warning."
   [{:keys [database_id] :as request} :- ::request-schema]
   (when-let [reason (metabot.self/llm-call-unavailable-reason required-permission)]
     (throw (unavailable-error reason)))
