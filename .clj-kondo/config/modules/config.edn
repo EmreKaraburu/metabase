@@ -2505,7 +2505,6 @@
            lib.schema
            permissions
            premium-features
-           remote-sync
            request.schema
            session
            settings
@@ -4384,6 +4383,7 @@
    :api #{metabase-enterprise.advanced-permissions.api.routes}
    :uses #{api
            audit-app
+           collections
            lib
            lib.schema
            permissions
@@ -4400,8 +4400,7 @@
                     :model/Permissions
                     :model/PermissionsGroupMembership
                     :model/Sandbox
-                    :model/Table
-                    :model/TableUserSettings}}
+                    :model/Table}}
 
   enterprise/permissions.debug
   {:team "Security Engineering"
