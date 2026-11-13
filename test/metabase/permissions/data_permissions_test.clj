@@ -1515,12 +1515,12 @@
                                                                     (data-perms/visible-tables-filter-clause
                                                                      :id user-info {perm-type level})]})))
                                 "Tables")
-                            (is (= (into #{} (filter #(data-perms/at-least-as-permissive?
-                                                       perm-type
-                                                       (data-perms/some-table-in-database-permission-for-user
-                                                        user-id perm-type %)
-                                                       level))
-                                         db-ids)
+                            (is (= (into #{}
+                                         (keep (fn [[db-id value]]
+                                                 (when (data-perms/at-least-as-permissive? perm-type value level)
+                                                   db-id)))
+                                         (data-perms/some-table-in-database-permissions-for-user
+                                          user-info perm-type db-ids))
                                    (set (t2/select-pks-set :model/Database
                                                            {:where [:and [:in :id db-ids]
                                                                     (data-perms/visible-databases-filter-clause
