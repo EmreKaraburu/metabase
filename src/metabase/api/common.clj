@@ -467,7 +467,7 @@
   {:added "0.36.0"}
   [instance changes]
   (try
-    (check-403 (mi/can-update? (t2/hydrate instance :can_write) changes))
+    (check-403 (mi/can-update? (t2/hydrate instance :can-write?) changes))
     (catch clojure.lang.ExceptionInfo e
       (events/publish-event! :event/update-permission-failure {:user-id *current-user-id*
                                                                :object instance})

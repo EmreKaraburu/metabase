@@ -160,9 +160,9 @@
   (mt/with-temp [:model/Card audit-child-card {:collection_id (:id (audit/default-audit-collection))}
                  :model/Card root-child-card {:collection_id nil}]
     (is (false? (mi/can-write? (t2/hydrate audit-child-card :can-write?))))
-    (binding [api/*current-user-permissions-set* (delay #{"/collection/root/"})]
+    (mt/with-test-user :rasta
       (is (true? (mi/can-write? (t2/hydrate root-child-card :can-write?)))))
-    (binding [api/*current-user-permissions-set* (delay #{"/"})]
+    (mt/with-test-user :crowberto
       (is (true? (mi/can-write? (t2/hydrate root-child-card :can-write?)))))))
 
 (deftest can-write-is-false-for-audit-content-cards-test
@@ -181,9 +181,9 @@
   (mt/with-temp [:model/Dashboard audit-child-dashboard {:collection_id (:id (audit/default-audit-collection))}
                  :model/Dashboard root-child-dashboard {:collection_id nil}]
     (is (false? (mi/can-write? (t2/hydrate audit-child-dashboard :can-write?))))
-    (binding [api/*current-user-permissions-set* (delay #{"/collection/root/"})]
+    (mt/with-test-user :rasta
       (is (true? (mi/can-write? (t2/hydrate root-child-dashboard :can-write?)))))
-    (binding [api/*current-user-permissions-set* (delay #{"/"})]
+    (mt/with-test-user :crowberto
       (is (true? (mi/can-write? (t2/hydrate root-child-dashboard :can-write?)))))))
 
 (deftest can-write-is-false-for-audit-content-dashboards-test
