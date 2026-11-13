@@ -437,15 +437,16 @@
         (cond-> (t2/instance-of? :model/Card instance) (assoc :document_id nil)))))
 
 (defn- hydrate-collections-can-write
-  "Sets `:can_write` on the Collections among `results`, answered together for the user of `search-ctx`."
+  "Hydrates `:can-write?` on the Collections among `results`, answered together for the user of `search-ctx` from
+  the columns the check reads."
   [{:keys [current-user-id current-user-perms]} results]
   (let [ids       (into [] (comp (filter #(t2/instance-of? :model/Collection %)) (map :id) (distinct)) results)
         can-write (if (seq ids)
                     (ensure-current-user-perms-set-is-bound current-user-id current-user-perms
-                      (into {} (map (juxt :id :can_write))
-                            (t2/hydrate (search.db/collection-permission-rows ids) :can_write)))
+                      (into {} (map (juxt :id mi/can-write?))
+                            (t2/hydrate (search.db/collection-permission-rows ids) :can-write?)))
                     {})]
-    (map #(cond-> % (t2/instance-of? :model/Collection %) (assoc :can_write (boolean (get can-write (:id %)))))
+    (map #(cond-> % (t2/instance-of? :model/Collection %) (vary-meta assoc :can-write? (boolean (get can-write (:id %)))))
          results)))
 
 (defn check-result-permissions
