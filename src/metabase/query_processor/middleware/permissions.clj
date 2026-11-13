@@ -34,11 +34,10 @@
 (defn- throw-inactive-table-error
   [{db-id :id db-name :name} {table-id :id table-name :name schema :schema}]
   ;; We don't cache perms for inactive tables, so we need to manually bypass the cache here
-  (do
-    (let [show-table-name? (perms/user-has-permission-for-tables? (perms/user-info *current-user-id*) :perms/view-data :unrestricted {table-id db-id})]
-      (throw (Exception. (tru "Table {0} is inactive." (if show-table-name?
-                                                         (format "\"%s.%s.%s\"" db-name schema table-name)
-                                                         table-id)))))))
+  (let [show-table-name? (perms/user-has-permission-for-tables? (perms/user-info *current-user-id*) :perms/view-data :unrestricted {table-id db-id})]
+    (throw (Exception. (tru "Table {0} is inactive." (if show-table-name?
+                                                       (format "\"%s.%s.%s\"" db-name schema table-name)
+                                                       table-id))))))
 
 (defn- check-query-does-not-access-inactive-tables
   "Throws an exception if any of the tables referenced by this query are marked as inactive in the app DB.

@@ -609,7 +609,7 @@
         (mt/user-http-request
          :crowberto :put 200 "permissions/graph"
          (assoc-in (data-perms.graph/api-graph) [:groups gid db-id :create-queries] :query-builder-and-native))
-        (is (= :unrestricted (get (data-perms/table-permissions-for-groups #{gid} :perms/view-data {nil db-id}) nil)))))))
+        (is (= :unrestricted (get (data-perms/table-permissions-for-groups #{gid} :perms/view-data {0 db-id}) 0)))))))
 
 (deftest update-graph-response-echoes-only-modified-groups-test
   (testing "PUT /api/permissions/graph response :groups map contains only the request's modified group ids"

@@ -4,7 +4,6 @@
   (:require
    [metabase-enterprise.data-studio.db :as data-studio.db]
    [metabase.api.common :as api]
-   [metabase.models.interface :as mi]
    [metabase.permissions.core :as perms]
    [metabase.premium-features.core :refer [defenterprise]]
    [metabase.util.honey-sql-2 :as h2x]

@@ -1,6 +1,5 @@
 (ns metabase.warehouse-schema.models.field
   (:require
-   [metabase.api.common :as api]
    [clojure.string :as str]
    [medley.core :as m]
    [metabase.app-db.core :as mdb]

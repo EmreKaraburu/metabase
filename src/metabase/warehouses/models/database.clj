@@ -156,7 +156,7 @@
     (for [database databases]
       (when database
         (vary-meta database assoc k (boolean (and (not (should-read-audit-db? (:id database)))
-                                        (contains? allowed (permission-database-id (:id database))))))))))
+                                                  (contains? allowed (permission-database-id (:id database))))))))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Database :can-read?]
   "Whether the current user can see the metadata of each of `databases`."

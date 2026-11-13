@@ -7,10 +7,8 @@
    [metabase.config.core :as config]
    [metabase.permissions-rest.data-permissions.graph :as data-perms.graph]
    [metabase.permissions.data-permissions :as data-perms]
-   [metabase.permissions.db :as permissions.db]
    [metabase.permissions.models.permissions-group :as perms-group]
    [metabase.test :as mt]
-   [metabase.util :as u]
    [toucan2.core :as t2])
   (:import
    (clojure.lang ExceptionInfo)))
@@ -374,8 +372,7 @@
         (testing "Deactivated table has minimum permissions when reading straight from DB"
           (is (= :blocked (get (data-perms/table-permissions-for-user (data-perms/user-info user-id) :perms/view-data {table-id-1 database-id}) table-id-1))))
         (testing "Deactivated table has minimum permissions when reading from cache"
-          (do
-            (is (= :blocked (get (data-perms/table-permissions-for-user (data-perms/user-info user-id) :perms/view-data {table-id-1 database-id}) table-id-1)))))
+          (is (= :blocked (get (data-perms/table-permissions-for-user (data-perms/user-info user-id) :perms/view-data {table-id-1 database-id}) table-id-1))))
         (testing "Reactivating the table allows the perms to be read again"
           (t2/update! :model/Table :id table-id-1 {:active true})
           (is (= :unrestricted
@@ -1507,10 +1504,10 @@
             (doseq [order [[db-a db-b] [db-b db-a]]]
               (testing (str "checking databases " order)
                 (is (= {db-a [:blocked :no]
-                          db-b [:unrestricted :query-builder]}
-                         (into {} (for [db-id order]
-                                    [db-id [(get (data-perms/table-permissions-for-user (data-perms/user-info user-id) :perms/view-data {table-b db-id}) table-b)
-                                            (get (data-perms/table-permissions-for-user (data-perms/user-info user-id) :perms/create-queries {table-b db-id}) table-b)]]))))))))))))
+                        db-b [:unrestricted :query-builder]}
+                       (into {} (for [db-id order]
+                                  [db-id [(get (data-perms/table-permissions-for-user (data-perms/user-info user-id) :perms/view-data {table-b db-id}) table-b)
+                                          (get (data-perms/table-permissions-for-user (data-perms/user-info user-id) :perms/create-queries {table-b db-id}) table-b)]]))))))))))))
 
 (deftest race-conditions-test
   ;; This test is probabilistic: success doesn't *necessarily* prove we're doing things correctly, but

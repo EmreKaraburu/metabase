@@ -285,8 +285,7 @@
                     (is (not-any? #{"Monsters Table"} (q "table" "monster facts"))))
                   (testing "give data permissions"
                     (unrestrict-table monsters-table)
-                    (do
-                     (is (some #{"Monsters Table"} (q "table" "monster facts"))))))))))))))
+                    (is (some #{"Monsters Table"} (q "table" "monster facts")))))))))))))
 
 (deftest basic-batched-query-test
   (testing "Small-batch reindexing"

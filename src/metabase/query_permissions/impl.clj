@@ -421,17 +421,17 @@
 (defn check-result-metadata-data-perms
   "Check current user has view-data perms on all columns of `result-metadata`."
   [database-id result-metadata]
-  (let [field-ids (keep :id result-metadata)
-        table-ids (into (set (keep (some-fn :table-id :table_id) result-metadata))
-                        (when (seq field-ids)
-                          (query-permissions.db/field-table-ids field-ids)))]
-    (let [permissions (perms/table-permissions-for-user (perms/user-info api/*current-user-id*)
-                                                        :perms/view-data
-                                                        (zipmap table-ids (repeat database-id)))]
-      (run! #(when-not (= :unrestricted (get permissions %))
-               (throw (perms-exception (tru "You do not have permission to view data of table {0} in result_metadata." (str %))
-                                       {database-id {:perms/view-data {% :unrestricted}}})))
-            table-ids))))
+  (let [field-ids   (keep :id result-metadata)
+        table-ids   (into (set (keep (some-fn :table-id :table_id) result-metadata))
+                          (when (seq field-ids)
+                            (query-permissions.db/field-table-ids field-ids)))
+        permissions (perms/table-permissions-for-user (perms/user-info api/*current-user-id*)
+                                                      :perms/view-data
+                                                      (zipmap table-ids (repeat database-id)))]
+    (run! #(when-not (= :unrestricted (get permissions %))
+             (throw (perms-exception (tru "You do not have permission to view data of table {0} in result_metadata." (str %))
+                                     {database-id {:perms/view-data {% :unrestricted}}})))
+          table-ids)))
 
 (defn check-card-result-metadata-data-perms
   "Using `card-id` check current user has view data perms on all of card's result_metadata elements."

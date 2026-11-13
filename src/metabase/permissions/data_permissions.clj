@@ -434,7 +434,7 @@
           (vals (database-permissions-for-user user-info perm-type db-ids))))
 
 (mu/defn every-table-in-database-permissions-for-user :- [:map-of ::lib.schema.id/database
-                                                           ::permissions.schema/data-permission-value]
+                                                         ::permissions.schema/data-permission-value]
   "The `perm-type` value that the user of `user-info` has on every Table of each of the Databases with `db-ids`, as
   `{db-id value}`: per group its most restrictive value there, and across groups the most permissive of those."
   [{:keys [user-id] :as user-info} :- ::permissions.schema/data-user-info
