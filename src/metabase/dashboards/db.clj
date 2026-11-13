@@ -154,6 +154,11 @@
   [card-id :- ::lib.schema.id/card]
   (queries/card-query-info card-id))
 
+(mu/defn card-collection-ids :- [:map-of ::lib.schema.id/card [:maybe ::lib.schema.id/collection]]
+  "A map of Card id to the id of its Collection, nil for the root, for the Cards with `card-ids`."
+  [card-ids :- [:set ::lib.schema.id/card]]
+  (t2/select-pk->fn :collection_id :model/Card :id [:in card-ids]))
+
 (mu/defn card-queries
   "A map of Card id to query for the Cards with `card-ids`."
   [card-ids :- [:set ::lib.schema.id/card]]

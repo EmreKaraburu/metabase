@@ -2,6 +2,7 @@
   (:require
    [medley.core :as m]
    [metabase.api.common :as api]
+   [metabase.collections.models.collection :as collection]
    [metabase.dashboards.db :as dashboards.db]
    [metabase.dashboards.schema :as dashboards.schema]
    [metabase.lib.core :as lib]
@@ -82,29 +83,46 @@
 
 (declare series)
 
-(defn- dashboard-permissions
-  "Whether the current user passes `check`, `mi/can-read?` or `mi/can-write?`, on the Dashboard of each of `dashcards`,
-  by Dashboard id, the Dashboards hydrated with `k` together."
-  [k check dashcards]
-  (run! #(when % (api/check-500 (contains? % :dashboard_id) "No :dashboard_id is set for a DashboardCard.")) dashcards)
-  (let [ids (into [] (comp (remove nil?) (keep :dashboard_id) (distinct)) dashcards)]
-    (if (seq ids)
-      (into {} (map (juxt :id check)) (t2/hydrate (dashboards.db/dashboard-collection-rows ids) k))
-      {})))
+(defn- card-collection-ids
+  "For each of `dashcards`, by id, the ids of the Collections, nil for the root, of its Card and of the Cards of its
+  series, whose permissions a DashboardCard takes, the Cards and series not hydrated loaded together."
+  [dashcards]
+  (run! #(when % (api/check-500 (contains? % :card_id) "No :card_id is set for a DashboardCard.")) dashcards)
+  (let [dashcards (t2/hydrate (into [] (remove nil?) dashcards) :series)
+        card-ids  (into #{} (comp (remove :card) (keep :card_id)) dashcards)
+        cards     (if (seq card-ids)
+                    (dashboards.db/card-collection-ids card-ids)
+                    {})]
+    (into {}
+          (map (fn [{:keys [id card card_id series]}]
+                 [id (cond-> (into #{} (map :collection_id) series)
+                       card                  (conj (:collection_id card))
+                       (and card_id
+                            (not card)
+                            (contains? cards card_id)) (conj (get cards card_id)))]))
+          dashcards)))
 
 (methodical/defmethod t2/batched-hydrate [:model/DashboardCard :can-read?]
-  [_model k dashcards]
-  (let [permissions (dashboard-permissions k mi/can-read? dashcards)]
+  "Whether the current user reads each of `dashcards`: the content of the Collections of its Card and series Cards,
+  answered together."
+  [_model _k dashcards]
+  (let [collection-ids (card-collection-ids dashcards)
+        readable       (collection/content-readable-collection-ids (into #{} cat (vals collection-ids))
+                                                                   {:root-namespace nil})]
     (for [dashcard dashcards]
       (when dashcard
-        (vary-meta dashcard assoc :can-read? (boolean (get permissions (:dashboard_id dashcard))))))))
+        (vary-meta dashcard assoc :can-read? (every? #(contains? readable %) (get collection-ids (:id dashcard))))))))
 
 (methodical/defmethod t2/batched-hydrate [:model/DashboardCard :can-write?]
-  [_model k dashcards]
-  (let [permissions (dashboard-permissions k mi/can-write? dashcards)]
+  "Whether the current user writes each of `dashcards`: the content of the Collections of its Card and series Cards,
+  answered together."
+  [_model _k dashcards]
+  (let [collection-ids (card-collection-ids dashcards)
+        writable       (collection/content-writable-collection-ids (into #{} cat (vals collection-ids))
+                                                                   {:root-namespace nil})]
     (for [dashcard dashcards]
       (when dashcard
-        (vary-meta dashcard assoc :can-write? (boolean (get permissions (:dashboard_id dashcard))))))))
+        (vary-meta dashcard assoc :can-write? (every? #(contains? writable %) (get collection-ids (:id dashcard))))))))
 
 (defmethod mi/can-read? :model/DashboardCard
   ([dashcard]
