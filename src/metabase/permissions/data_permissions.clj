@@ -374,7 +374,8 @@
 
 (mu/defn every-table-in-schema-permission-for-user :- ::permissions.schema/data-permission-value
   "The `perm-type` value that the user of `user-info` has on every Table of the schema `schema-name` of the Database
-  with `database-id`: per group its most restrictive value there, and across groups the most permissive of those."
+  with `database-id`, nil naming the Tables without one: per group its most restrictive value there, and across groups
+  the most permissive of those."
   [{:keys [user-id] :as user-info} :- ::permissions.schema/data-user-info
    perm-type                       :- ::permissions.schema/data-permission-type
    database-id                     :- ::lib.schema.id/database
@@ -385,7 +386,9 @@
     (no-user? user-info)                          (least-permissive-value perm-type)
     :else
     (or (let [{:keys [mn mx]} (permissions.db/most-restrictive-rank-pair user-id perm-type
-                                                                         {:db-id database-id :schema-name schema-name})]
+                                                                         {:db-id         database-id
+                                                                          :schema-name   schema-name
+                                                                          :exact-schema? true})]
           (coalesce-ranks perm-type mn mx))
         (least-permissive-value perm-type))))
 

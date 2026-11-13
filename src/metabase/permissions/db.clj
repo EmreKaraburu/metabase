@@ -22,11 +22,13 @@
 
 (mr/def ::scope
   "Which `perm-type` rows count, never those of inactive Tables: within `:db-id`, outside `:exclude-db-ids`, and of the
-  Database itself plus the Tables in one `:schema-name`, nil and the empty string being one schema."
+  Database itself plus the Tables in one `:schema-name`, nil and the empty string being one schema unless
+  `:exact-schema?`."
   [:map {:closed true}
    [:db-id          {:optional true} ::lib.schema.id/database]
    [:exclude-db-ids {:optional true} [:maybe [:sequential ::lib.schema.id/database]]]
-   [:schema-name    {:optional true} [:maybe :string]]])
+   [:schema-name    {:optional true} [:maybe :string]]
+   [:exact-schema?  {:optional true} :boolean]])
 
 (defn- scope-clauses
   "The WHERE clauses for the `perm-type` rows in `scope` of `p` left-joined to its table `mt`, see [[::scope]]."
@@ -40,7 +42,7 @@
    (when (contains? scope :schema-name)
      [:or
       [:= :p.table_id nil]
-      (if (str/blank? (:schema-name scope))
+      (if (and (not (:exact-schema? scope)) (str/blank? (:schema-name scope)))
         [:or [:= :p.schema_name nil] [:= :p.schema_name ""]]
         [:= :p.schema_name (:schema-name scope)])])])
 
