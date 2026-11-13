@@ -13,7 +13,6 @@
    ;; back into this module. `notification.card` requires only events, the notification models,
    ;; and toucan.
    [metabase.notification.card :as notification.card]
-   [metabase.permissions.core :as perms]
    [metabase.premium-features.core :as premium-features]
    [metabase.util :as u]
    [metabase.util.i18n :refer [tru]]
