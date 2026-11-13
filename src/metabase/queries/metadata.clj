@@ -92,8 +92,8 @@
                    [:sequential ::lib.schema.id/card]
                    [:set ::lib.schema.id/card]]]]
   (when (seq ids)
-    (let [cards (into [] (filter mi/can-read?)
-                      (queries.db/cards ids))]
+    (let [cards (into []
+                      (filterv mi/can-read? (t2/hydrate (queries.db/cards ids) :can_read)))]
       (t2/hydrate cards :can_write))))
 
 (mu/defn- batch-fetch-query-metadata*
@@ -196,8 +196,7 @@
 (defn- batch-fetch-linked-dashboards
   [dashboard-ids]
   (when (seq dashboard-ids)
-    (let [dashboards (->> (queries.db/dashboards dashboard-ids)
-                          (filter mi/can-read?))]
+    (let [dashboards (->> (filterv mi/can-read? (t2/hydrate (queries.db/dashboards dashboard-ids) :can_read)))]
       (t2/hydrate dashboards :can_write :param_fields))))
 
 (defn- batch-fetch-dashboard-links

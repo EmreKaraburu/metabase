@@ -84,7 +84,7 @@
   (try
     (let [ids (lib/all-source-card-ids-recursive query)]
       (or (empty? ids)
-          (let [cards (mcp.db/select-by-ids :model/Card ids)]
+          (let [cards (t2/hydrate (mcp.db/select-by-ids :model/Card ids) :can_read)]
             (and (= (count cards) (count ids))
                  (every? mi/can-read? cards)))))
     (catch Exception _ false)))

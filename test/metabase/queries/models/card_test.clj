@@ -1213,7 +1213,7 @@
       (mt/with-test-user :crowberto
         (is (true? (mi/can-write? card)))
         (is (true? (mi/can-write? :model/Card (:id card))))
-        (is (true? (:can_write (t2/hydrate card :can_write))))
+        (is (true? (mi/can-write? (t2/hydrate card :can_write))))
         (is (true? (mi/can-create? :model/Card {:collection_id collection-id}))))
       (mt/with-test-user :rasta
         (is (false? (mi/can-write? card)))

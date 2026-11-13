@@ -446,18 +446,16 @@
 
 (defmethod mi/can-read? :model/Collection
   ([collection]
-   (if-some [can-read (:can-read? (meta collection))]
-     can-read
-     (:can-read? (meta (t2/hydrate collection :can_read)))))
+   (api/check-500 (some? (:can-read? (meta collection))) "No :can_read is hydrated on a Collection.")
+   (:can-read? (meta collection)))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
-   (mi/can-read? (api/check-404 (collections.db/collection pk)))))
+   (mi/can-read? (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_read))))
 
 (defmethod mi/can-write? :model/Collection
   ([collection]
-   (if-some [can-write (:can_write collection)]
-     can-write
-     (:can_write (t2/hydrate collection :can_write))))
+   (api/check-500 (some? (:can_write collection)) "No :can_write is hydrated on a Collection.")
+   (:can_write collection))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
    (:can_write (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_write))))

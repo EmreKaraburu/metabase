@@ -1,5 +1,6 @@
 (ns metabase.explorations.models.exploration-thread-timeline
   (:require
+   [metabase.api.common :as api]
    [metabase.explorations.db :as explorations.db]
    [metabase.models.interface :as mi]
    [metabase.timeline.core :as timeline]
@@ -24,8 +25,7 @@
           ;; moved into a collection they can't read — those rows hydrate with a nil `:timeline`.
           timelines    (when (seq timeline-ids)
                          (timeline/include-events
-                          (filterv mi/can-read?
-                                   (explorations.db/timelines timeline-ids))
+                          (filterv mi/can-read? (t2/hydrate (explorations.db/timelines timeline-ids) :can_read))
                           {:events/all? false}))]
       (into {} (map (juxt :id identity)) timelines))
    :timeline_id))
