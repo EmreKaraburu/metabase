@@ -155,6 +155,16 @@
           (:collection_id owner))
      permission)))
 
+(defn- alert-card-writable?
+  "Whether the current user writes the content of the Collection of the Card of `alert`, which takes write permission
+  on it and a Collection remote sync leaves writable."
+  [alert]
+  (let [card (alert->card alert)]
+    (api/check-500 (contains? card :collection_id) "No :collection_id is set for the Collection check of a Pulse.")
+    (contains? (collection/content-writable-collection-ids [(:collection_id card)]
+                                                           {:root-namespace nil, :audit-rules? false})
+               (:collection_id card))))
+
 (defn- current-user-is-creator?
   [notification]
   (= api/*current-user-id* (:creator_id notification)))
@@ -181,7 +191,7 @@
 (defmethod mi/can-write? :model/Pulse
   [notification]
   (if (is-alert? notification)
-    (collection-permits? notification :read-and-write)
+    (alert-card-writable? notification)
     (or api/*is-superuser?*
         (and (collection-permits? notification :read)
              (current-user-is-creator? notification)))))

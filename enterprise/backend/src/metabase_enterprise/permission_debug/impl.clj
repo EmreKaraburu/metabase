@@ -17,7 +17,6 @@
    [metabase.lib.core :as lib]
    [metabase.models.interface :as mi]
    [metabase.query-processor.preprocess :as qp.preprocess]
-   [metabase.request.core :as request]
    [metabase.util.i18n :refer [tru]]
    [metabase.util.malli :as mu]
    [metabase.util.match :as match]))
