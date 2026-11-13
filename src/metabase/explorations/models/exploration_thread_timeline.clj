@@ -1,6 +1,5 @@
 (ns metabase.explorations.models.exploration-thread-timeline
   (:require
-   [metabase.api.common :as api]
    [metabase.explorations.db :as explorations.db]
    [metabase.models.interface :as mi]
    [metabase.timeline.core :as timeline]

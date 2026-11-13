@@ -697,15 +697,16 @@
   (documents/with-content-gate-cache
     (let [coll-id        (parse-long id-str)
           coll           (when-not (= id-str "root") (readable-collection id-str))
-          cards          (->> (filterv mi/can-read? (t2/hydrate (metabot.db/cards-in-collection coll-id) :can-read?)))
-          dashboards     (->> (filterv mi/can-read? (t2/hydrate (metabot.db/dashboards-in-collection coll-id) :can-read?)))
+          cards          (filterv mi/can-read? (t2/hydrate (metabot.db/cards-in-collection coll-id) :can-read?))
+          dashboards     (filterv mi/can-read? (t2/hydrate (metabot.db/dashboards-in-collection coll-id) :can-read?))
           ;; Exploration Summary documents are only through their exploration — so they stay out of this listing
-          documents      (->> (filterv mi/can-read? (t2/hydrate (metabot.db/documents-in-collection coll-id) :can-read?)))
-          subcollections (t2/hydrate (filterv mi/can-read? (t2/hydrate (if (= id-str "root")
-                                                     (metabot.db/navigable-collections false)
-                                                     (metabot.db/unarchived-collections-at-location
-                                                      (collection/children-location coll))) :can-read?))
-                                     :can_write)
+          documents      (filterv mi/can-read? (t2/hydrate (metabot.db/documents-in-collection coll-id) :can-read?))
+          subcollections (-> (if (= id-str "root")
+                               (metabot.db/navigable-collections false)
+                               (metabot.db/unarchived-collections-at-location (collection/children-location coll)))
+                             (t2/hydrate :can-read?)
+                             (->> (filterv mi/can-read?))
+                             (t2/hydrate :can_write))
           items          (concat (map present-collection subcollections)
                                  (map present-card cards)
                                  (map present-dashboard dashboards)
@@ -714,12 +715,13 @@
 
 (defn- fetch-collection-subcollections [id-str query-params]
   (let [coll    (when-not (= id-str "root") (readable-collection id-str))
-        subs    (->> (t2/hydrate (filterv mi/can-read? (t2/hydrate (if (= id-str "root")
-                                                 (metabot.db/navigable-collections false)
-                                                 (metabot.db/unarchived-collections-at-location
-                                                  (collection/children-location coll))) :can-read?))
-                                 :can_write)
-                     (mapv present-collection))]
+        subs    (-> (if (= id-str "root")
+                      (metabot.db/navigable-collections false)
+                      (metabot.db/unarchived-collections-at-location (collection/children-location coll)))
+                    (t2/hydrate :can-read?)
+                    (->> (filterv mi/can-read?))
+                    (t2/hydrate :can_write)
+                    (->> (mapv present-collection)))]
     (list-result :collection-subcollections subs query-params)))
 
 ;; ----- Table -----

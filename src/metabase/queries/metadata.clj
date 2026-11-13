@@ -196,7 +196,7 @@
 (defn- batch-fetch-linked-dashboards
   [dashboard-ids]
   (when (seq dashboard-ids)
-    (let [dashboards (->> (filterv mi/can-read? (t2/hydrate (queries.db/dashboards dashboard-ids) :can-read?)))]
+    (let [dashboards (filterv mi/can-read? (t2/hydrate (queries.db/dashboards dashboard-ids) :can-read?))]
       (t2/hydrate dashboards :can_write :param_fields))))
 
 (defn- batch-fetch-dashboard-links

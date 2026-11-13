@@ -536,7 +536,7 @@
   [card-ids]
   (when (seq card-ids)
     (into {}
-          (comp (u/index-by :id))
+          (u/index-by :id)
           (filterv mi/can-read? (t2/hydrate (metabot.db/card-source-rows card-ids) :can-read?)))))
 
 (defn card-source-table-id

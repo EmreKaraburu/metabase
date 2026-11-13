@@ -122,7 +122,7 @@
   [ids]
   (when (seq ids)
     (into {}
-          (comp (map (juxt :id :name)))
+          (map (juxt :id :name))
           (filterv mi/can-read? (t2/hydrate (mcp.db/collections-for-read-check ids) :can-read?)))))
 
 (defn- add-collection-paths
