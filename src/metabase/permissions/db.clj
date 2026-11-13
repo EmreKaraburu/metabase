@@ -387,22 +387,22 @@
   "A HoneySQL where-clause holding when `column-or-exp` is a Table on which the user of `user-info` has, for each type
   of `permission-mapping`, the required value or a more permissive one. Each Table, aliased `mt`, is probed on its own,
   through the `data_permissions (table_id, ...)` index for its own rows and through its Database's rows, so a query
-  that filters a few Tables doesn't work out the permissions of every Table. On EE, a Table published into a
-  Collection the user reads also grants `:perms/create-queries :query-builder`."
+  that filters a few Tables doesn't work out the permissions of every Table. See
+  `::permissions.schema/table-filter-options` for `options`."
   [column-or-exp      :- ColumnOrExp
    user-info          :- ::permissions.schema/data-user-info
-   permission-mapping :- ::permissions.schema/permission-mapping]
+   permission-mapping :- ::permissions.schema/permission-mapping
+   {:keys [active-only? include-published-via-collection?]} :- ::permissions.schema/table-filter-options]
   (if (sees-every-row? user-info permission-mapping)
     every-row-clause
     (let [user-id          (:user-id user-info)
-          published-clause (when (contains? permission-mapping :perms/create-queries)
+          published-clause (when (and include-published-via-collection?
+                                      (contains? permission-mapping :perms/create-queries))
                              (published-tables/published-table-clause user-info :mt))
           holds   (fn [perm-type]
                     (fn [values]
                       [:or
-                       [:and
-                        [:= :mt.active true]
-                        (rows-exist-clause user-id perm-type values [:= :dp.table_id :mt.id])]
+                       (rows-exist-clause user-id perm-type values [:= :dp.table_id :mt.id])
                        (rows-exist-clause user-id perm-type values [:and
                                                                     [:= :dp.db_id :mt.db_id]
                                                                     [:= :dp.table_id nil]])
@@ -413,14 +413,14 @@
        ^:allow-subquery
        {:select [:mt.id]
         :from   [[(t2/table-name :model/Table) :mt]]
-        :where  (into [:and]
+        :where  (into [:and (when active-only? [:= :mt.active true])]
                       (map (fn [[perm-type level]] (grant-clause perm-type level (holds perm-type))))
                       permission-mapping)}])))
 
 (mu/defn visible-databases-filter-clause :- [:fn vector?]
   "A HoneySQL where-clause holding when `column-or-exp` is a Database on which the user of `user-info` has, for each
   type of `permission-mapping`, the required value or a more permissive one on some row: the Database's own, or one of
-  an active Table of it. Each Database is probed on its own."
+  a Table of it. Each Database is probed on its own."
   [column-or-exp      :- ColumnOrExp
    user-info          :- ::permissions.schema/data-user-info
    permission-mapping :- ::permissions.schema/permission-mapping]
@@ -429,17 +429,7 @@
     (let [user-id (:user-id user-info)
           holds   (fn [perm-type]
                     (fn [values]
-                      [:or
-                       (rows-exist-clause user-id perm-type values [:and
-                                                                    [:= :dp.db_id :md.id]
-                                                                    [:= :dp.table_id nil]])
-                       (rows-exist-clause user-id perm-type values
-                                          [:and
-                                           [:= :dp.db_id :md.id]
-                                           [:exists ^:allow-subquery
-                                            {:select [[[:inline 1] :one]]
-                                             :from   [[(t2/table-name :model/Table) :mt]]
-                                             :where  [:and [:= :mt.id :dp.table_id] [:= :mt.active true]]}]])]))]
+                      (rows-exist-clause user-id perm-type values [:= :dp.db_id :md.id])))]
       [:in column-or-exp
        ^:allow-subquery
        {:select [:md.id]

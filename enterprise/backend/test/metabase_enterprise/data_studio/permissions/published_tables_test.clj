@@ -129,7 +129,9 @@
                                                     (perms/visible-tables-filter-clause
                                                      :id {:user-id user-id :is-superuser? false}
                                                      {:perms/view-data      :unrestricted
-                                                      :perms/create-queries :query-builder})]})]
+                                                      :perms/create-queries :query-builder}
+                                                     {:active-only?                      false
+                                                      :include-published-via-collection? true})]})]
             (testing "the data-perms grant and the published+visible-collection table pass"
               (is (= #{plain-allowed pub-allowed} visible)))
             (testing "unpublished or non-visible-collection tables do not pass via the published path"

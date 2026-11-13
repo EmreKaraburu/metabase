@@ -41,7 +41,8 @@
     :is-superuser?    is-superuser?
     :is-data-analyst? is-data-analyst?}
    {:perms/view-data      :unrestricted
-    :perms/create-queries :query-builder}))
+    :perms/create-queries :query-builder}
+   {:active-only? true, :include-published-via-collection? true}))
 
 (mu/defn permitted-data-apps-clause
   "Build the WHERE clause that keeps the data apps the given user can read: none without the data apps feature."

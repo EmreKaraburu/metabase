@@ -31,7 +31,8 @@
             [:not (perms/visible-tables-filter-clause
                    :blocked.id
                    {:user-id user-id :is-superuser? false}
-                   permissions-granting)]]})
+                   permissions-granting
+                   {:active-only? false, :include-published-via-collection? false})]]})
 
 (mu/defn blocked-tables-in-database
   "The `[db-name schema table-name group-name]` rows of every Table in the Database with `database-id` blocked (per

@@ -53,7 +53,8 @@
                       :id
                       {:user-id user-id, :is-superuser? superuser?}
                       {:perms/view-data      :unrestricted
-                       :perms/create-queries :query-builder-and-native})}))
+                       :perms/create-queries :query-builder-and-native}
+                      {:active-only? false, :include-published-via-collection? false})}))
 
 (mu/defn unarchived-cards
   "The unarchived Cards with `card-ids`."

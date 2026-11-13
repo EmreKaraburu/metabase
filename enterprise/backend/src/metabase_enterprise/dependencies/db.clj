@@ -131,7 +131,8 @@
                        :where  (perms/visible-tables-filter-clause
                                 id-column
                                 {:user-id user-id :is-superuser? is-superuser?}
-                                {:perms/view-data :unrestricted :perms/create-queries :query-builder})}]]
+                                {:perms/view-data :unrestricted :perms/create-queries :query-builder}
+                                {:active-only? false, :include-published-via-collection? false})}]]
 
                     (:model/Segment :model/Measure)
                     (let [archived-column (u/qualified-key table-name :archived)
@@ -150,7 +151,8 @@
                                     :where  (perms/visible-tables-filter-clause
                                              :metabase_table.id
                                              {:user-id user-id :is-superuser? is-superuser?}
-                                             {:perms/view-data :unrestricted :perms/create-queries :query-builder})}]
+                                             {:perms/view-data :unrestricted :perms/create-queries :query-builder}
+                                             {:active-only? false, :include-published-via-collection? false})}]
                                   (case include-archived-items
                                     :exclude [:= archived-column false]
                                     :only    [:= archived-column true]

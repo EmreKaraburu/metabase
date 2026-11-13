@@ -549,7 +549,8 @@
                                               {:user-id       api/*current-user-id*
                                                :is-superuser? api/*is-superuser?*}
                                               {:perms/view-data      :unrestricted
-                                               :perms/create-queries :query-builder-and-native})})
+                                               :perms/create-queries :query-builder-and-native}
+                                              {:active-only? false, :include-published-via-collection? false})})
 
 (mu/defn visible-table-summaries-for-current-user
   "The ID, name, schema, and description of the active, unhidden Tables among `table-ids` in the Database with

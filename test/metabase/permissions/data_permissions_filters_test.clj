@@ -181,9 +181,14 @@
             visible            (fn [query]
                                  (t2/select-pks-set :model/Table
                                                     (update query :where (fn [w] [:and [:in :db_id [(:id db) (:id other-db)]] w]))))]
-        (testing "an inactive table's own grant doesn't count, a Database-level grant does"
-          (is (= #{(:id granted-table) (:id other-db-table)}
-                 (visible {:where (perms/visible-tables-filter-clause :id user-info permission-mapping)}))))
+        (testing "inactive table's own grant counts unless only active Tables are asked for"
+          (is (= #{(:id granted-table) (:id inactive-table) (:id other-db-table)}
+                 (visible {:where (perms/visible-tables-filter-clause :id user-info permission-mapping
+                                                                      {:active-only? false, :include-published-via-collection? false})})))
+          (is (= #{(:id granted-table)}
+                 (visible {:where (perms/visible-tables-filter-clause
+                                   :id user-info permission-mapping
+                                   {:active-only? true, :include-published-via-collection? false})}))))
         (testing "from inside a derived table"
           (is (= #{(:id granted-table)}
                  (t2/select-pks-set :model/Table
@@ -194,15 +199,18 @@
                                                 :where  [:and
                                                          [:= :db_id (:id db)]
                                                          (perms/visible-tables-filter-clause
-                                                          :id user-info permission-mapping)]}
+                                                          :id user-info permission-mapping
+                                                          {:active-only?                      true
+                                                           :include-published-via-collection? false})]}
                                                :x]]}))))
         (testing "a superuser gets a clause that keeps every table"
           (is (= #{(:id granted-table) (:id inactive-table) (:id ungranted-table) (:id other-db-table)}
                  (visible {:where (perms/visible-tables-filter-clause
-                                   :id (assoc user-info :is-superuser? true) permission-mapping)}))))))))
+                                   :id (assoc user-info :is-superuser? true) permission-mapping
+                                   {:active-only? false, :include-published-via-collection? false})}))))))))
 
 (deftest visible-databases-filter-clause-test
-  (testing "a Database is visible through its own row or through an active table's row"
+  (testing "a Database is visible through its own row or through the row of a table of it, active or not"
     (mt/with-temp [:model/Database db-grant {}
                    :model/Database table-grant {}
                    :model/Database inactive-grant {}
@@ -221,7 +229,7 @@
         (perms/set-database-permission! (:id group) (:id db-grant) :perms/create-queries :query-builder)
         (perms/set-table-permission! (:id group) active :perms/create-queries :query-builder)
         (perms/set-table-permission! (:id group) inactive :perms/create-queries :query-builder)
-        (is (= #{(:id db-grant) (:id table-grant)}
+        (is (= #{(:id db-grant) (:id table-grant) (:id inactive-grant)}
                (t2/select-pks-set :model/Database
                                   {:where [:and [:in :id db-ids]
                                            (perms/visible-databases-filter-clause

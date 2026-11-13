@@ -184,7 +184,8 @@
   [db-id user-info permission-mapping table-id-field]
   (t2/select-pks-set [:model/Table]
                      {:where [:and [:= :db_id db-id]
-                              (perms/visible-tables-filter-clause table-id-field user-info permission-mapping)]}))
+                              (perms/visible-tables-filter-clause table-id-field user-info permission-mapping
+                                                                  {:active-only? false, :include-published-via-collection? false})]}))
 
 (defn- superuser-info
   "Returns user-info map for a superuser."

@@ -822,7 +822,8 @@
              {:user-id       api/*current-user-id*
               :is-superuser? api/*is-superuser?*}
              {:perms/view-data      :unrestricted
-              :perms/create-queries :query-builder})
+              :perms/create-queries :query-builder}
+             {:active-only? false, :include-published-via-collection? true})
             [:= :t.collection_id (:id collection)]
             (if archived?
               [:!= :t.archived_at nil]
