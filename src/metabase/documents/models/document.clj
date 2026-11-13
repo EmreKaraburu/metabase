@@ -139,7 +139,7 @@
     (for [document documents]
       (when document
         (vary-meta document assoc :can-read? (boolean (and (contains? readable (:collection_id document))
-                                                                         (content-visible? document))))))))
+                                                           (content-visible? document))))))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Document :can-write?]
   "Whether the current user writes each of `documents`, as the content of its Collection."
@@ -150,7 +150,7 @@
     (for [document documents]
       (when document
         (vary-meta document assoc :can-write? (boolean (and (contains? writable (:collection_id document))
-                                              (content-visible? document))))))))
+                                                            (content-visible? document))))))))
 
 (defmethod mi/can-read? :model/Document
   ([document]
