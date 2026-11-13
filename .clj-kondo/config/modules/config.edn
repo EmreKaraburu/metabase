@@ -4390,7 +4390,6 @@
            premium-features
            query-permissions
            query-processor
-           remote-sync
            util
            warehouses
            enterprise/permissions.impersonation}
