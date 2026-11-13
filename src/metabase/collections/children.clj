@@ -339,11 +339,18 @@
 (defn- visible-items-clause
   "The where-clause keeping the items whose Collection, by `collection-id-field`, the current user sees in this listing:
   the Collections they can read, or write when listing the trash, the trash then included, a nil collection id standing
-  for the root Collection of the `:root-namespace` option."
+  for the root Collection of the `:root-namespace` option, which they only have to read in either listing."
   [collection-id-field archived? options]
-  (perms/visible-collections-filter-clause collection-id-field
-                                           (api/current-user-info)
-                                           (visible-items-options archived? options)))
+  (let [clause (fn [permission-level]
+                 (perms/visible-collections-filter-clause collection-id-field
+                                                          (api/current-user-info)
+                                                          (assoc (visible-items-options archived? options)
+                                                                 :permission-level permission-level)))]
+    (if archived?
+      [:or
+       [:and [:= collection-id-field nil] (clause :read)]
+       [:and [:not= collection-id-field nil] (clause :write)]]
+      (clause :read))))
 
 (defmethod collection-children-query :document
   [_ collection {:keys [archived? pinned-state created-by-id show-exploration-documents?]}]
