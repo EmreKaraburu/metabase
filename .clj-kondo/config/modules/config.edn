@@ -2634,10 +2634,6 @@
                     :model/Collection
                     :model/Dashboard
                     :model/DataApp
-                    :model/Database
-                    :model/Document
-                    :model/Measure
-                    :model/Segment
                     :model/Table
                     :model/User}}
 
@@ -4386,7 +4382,6 @@
            audit-app
            lib
            lib.schema
-           models
            permissions
            premium-features
            query-permissions
