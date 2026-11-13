@@ -443,8 +443,8 @@
   (let [ids       (into [] (comp (filter #(t2/instance-of? :model/Collection %)) (map :id) (distinct)) results)
         can-write (if (seq ids)
                     (ensure-current-user-perms-set-is-bound current-user-id current-user-perms
-                      (into {} (map (juxt :id mi/can-write?))
-                            (t2/hydrate (search.db/collection-permission-rows ids) :can-write?)))
+                                                            (into {} (map (juxt :id mi/can-write?))
+                                                                  (t2/hydrate (search.db/collection-permission-rows ids) :can-write?)))
                     {})]
     (map #(cond-> % (t2/instance-of? :model/Collection %) (vary-meta assoc :can-write? (boolean (get can-write (:id %)))))
          results)))

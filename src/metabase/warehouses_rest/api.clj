@@ -589,7 +589,7 @@
   (warehouses/get-database id)
   (perms/prime-table-perms-cache {:db-ids #{id}})
   (let [fields (filter mi/can-read? (t2/hydrate (-> (warehouses-rest.db/non-sensitive-fields-for-tables (warehouses-rest.db/table-ids-for-database id))
-                                        (t2/hydrate :table)) :can-read?))]
+                                                    (t2/hydrate :table)) :can-read?))]
     (for [{:keys [id name display_name table table_id base_type semantic_type]} fields]
       {:id            id
        :name          name

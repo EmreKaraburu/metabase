@@ -100,9 +100,9 @@
    Uses collection permissions directly, bypassing remote-sync content lock."
   [{model-id :id :as instance}]
   (mi/can-write? (t2/hydrate (t2/instance :model/CacheConfig {:model (-> (t2/model instance)
-                                                             name
-                                                             u/lower-case-en)
-                                                  :model_id model-id}) :can-write?)))
+                                                                         name
+                                                                         u/lower-case-en)
+                                                              :model_id model-id}) :can-write?)))
 
 (methodical/defmethod t2/batched-hydrate [:perms/use-parent-collection-perms :can_set_cache_policy]
   [_model k models]

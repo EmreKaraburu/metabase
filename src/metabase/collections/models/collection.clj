@@ -2417,4 +2417,3 @@
           (cond-> item
             (and local (system-collection-name local)) (update :row dissoc :name)))
         items))
-

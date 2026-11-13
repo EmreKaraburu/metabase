@@ -69,8 +69,8 @@
                                                                  :dashboard-id dashboard-id
                                                                  :user-id      (when creator-or-recipient api/*current-user-id*)})
                                   (#(if creator-or-recipient
-                                       (filter mi/can-read? (t2/hydrate % :can-read?))
-                                       (filter mi/can-write? (t2/hydrate % :can-write?))))
+                                      (filter mi/can-read? (t2/hydrate % :can-read?))
+                                      (filter mi/can-write? (t2/hydrate % :can-write?))))
                                   models.pulse/maybe-filter-pulses-recipients)
         pulses               (if creator-or-recipient
                                (map models.pulse/maybe-strip-sensitive-metadata pulses)
