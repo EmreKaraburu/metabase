@@ -275,8 +275,12 @@
 
 (mr/def ::data-user-info
   "The user a data permission question is about: a nil `:user-id` in a context without a user, where only a superuser
-  one, such as `request/as-admin`, has permissions."
+  one, such as `request/as-admin`, has permissions, and whether they are a data analyst, false when not said."
   [:map {:closed true}
    [:user-id          [:maybe pos-int?]]
    [:is-superuser?    :boolean]
-   [:is-data-analyst? :boolean]])
+   [:is-data-analyst? {:optional true} :boolean]])
+
+(mr/def ::permission-mapping
+  "Map of permission type to the permission value the user needs, or a more permissive one."
+  [:map-of ::data-permission-type ::data-permission-value])

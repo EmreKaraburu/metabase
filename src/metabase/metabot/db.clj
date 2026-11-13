@@ -543,18 +543,13 @@
              :visibility_type nil))
 
 (defn- current-user-visible-table-clause
-  "Honey SQL `{:where …}` (plus `:with` when the filter needs a CTE) restricting Tables to those visible to the
-  current user for querying."
+  "Honey SQL `{:where …}` restricting Tables to those visible to the current user for querying."
   []
-  (let [{table-where-clause :clause table-cte :with}
-        (mi/visible-filter-clause :model/Table
-                                  :id
-                                  {:user-id       api/*current-user-id*
-                                   :is-superuser? api/*is-superuser?*}
-                                  {:perms/view-data      :unrestricted
-                                   :perms/create-queries :query-builder-and-native})]
-    (cond-> {:where table-where-clause}
-      table-cte (assoc :with table-cte))))
+  {:where (perms/visible-tables-filter-clause :id
+                                              {:user-id       api/*current-user-id*
+                                               :is-superuser? api/*is-superuser?*}
+                                              {:perms/view-data      :unrestricted
+                                               :perms/create-queries :query-builder-and-native})})
 
 (mu/defn visible-table-summaries-for-current-user
   "The ID, name, schema, and description of the active, unhidden Tables among `table-ids` in the Database with
