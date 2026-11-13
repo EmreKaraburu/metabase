@@ -784,7 +784,7 @@
                                              [:in :report_card.type ["metric" "model"]]
                                              [:= :report_card.archived false]
                                              (when api/*current-user-id*
-                                               (collection.model/visible-collection-filter-clause :report_card.collection_id))]}]
+                                               (perms/visible-collections-filter-clause :report_card.collection_id (api/current-user-info) {:root-namespace nil}))]}]
     (cond-> base-query
       verified?
       (update :left-join (fnil into []) [[:moderation_review :mr] [:and

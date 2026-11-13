@@ -3,7 +3,6 @@
   Provides query access to published tables via collection permissions."
   (:require
    [metabase-enterprise.data-studio.db :as data-studio.db]
-   [metabase.collections.models.collection :as collection]
    [metabase.models.interface :as mi]
    [metabase.permissions.core :as perms]
    [metabase.premium-features.core :refer [defenterprise]]
@@ -46,7 +45,7 @@
 
   Returns nil when the caller's permission mapping does not include `:perms/create-queries`."
   :feature :library
-  [{:keys [user-id is-superuser?]} perm-types active-only?]
+  [{:keys [user-id is-superuser? is-data-analyst?]} perm-types active-only?]
   (when (contains? (set perm-types) :perms/create-queries)
     ^:allow-subquery
     {:select [[:mt.id :id]
@@ -55,9 +54,8 @@
      :from   [[(t2/table-name :model/Table) :mt]]
      :where  (cond-> [:and
                       [:= :mt.is_published true]
-                      (collection/visible-collection-filter-clause
+                      (perms/visible-collections-filter-clause
                        :mt.collection_id
-                       {}
-                       {:current-user-id user-id
-                        :is-superuser?   is-superuser?})]
+                       {:user-id user-id, :is-superuser? is-superuser?, :is-data-analyst? (boolean is-data-analyst?)}
+                       {:root-namespace nil})]
                active-only? (conj [:= :mt.active true]))}))
