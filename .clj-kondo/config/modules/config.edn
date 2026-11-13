@@ -2063,7 +2063,6 @@
            models
            premium-features
            settings
-           tracing
            users.schema
            util
            util.config
@@ -4366,8 +4365,8 @@
   enterprise/native-query-snippets
   {:team "Graphy"
    :ns-prefix "metabase-enterprise.snippet-collections"
-   :uses #{lib.schema
-           models
+   :uses #{api
+           lib.schema
            native-query-snippets
            permissions
            premium-features
