@@ -126,4 +126,3 @@
                                                     (collection-user user-info)
                                                     (root-objects (:root-namespace options))
                                                     options))
-

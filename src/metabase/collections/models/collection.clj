@@ -1070,7 +1070,7 @@
                                          :from [[:collection :c2]]
                                          :where [:and
                                                  (perms/visible-collections-filter-clause :c2.id (api/current-user-info)
-                                                                                              visibility-config)
+                                                                                          visibility-config)
                                                  [:= (->col "location") [:concat :c2.location :c2.id (h2x/literal "/")]]
                                                  (when-not (collection.root/is-root-collection? parent-coll)
                                                    [:not= :c2.id [:inline (u/the-id parent-coll)]])]}]]])]))
