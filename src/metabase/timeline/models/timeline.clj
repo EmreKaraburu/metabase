@@ -31,7 +31,7 @@
   [_model _k timelines]
   (run! #(when % (check-can-read-keys %)) timelines)
   (let [readable (collection/content-readable-collection-ids (map :collection_id (remove nil? timelines))
-                                                             {:root-namespace nil})]
+                                                             {:root-namespace nil, :audit-rules? false})]
     (for [timeline timelines]
       (when timeline
         (vary-meta timeline assoc :can-read? (contains? readable (:collection_id timeline)))))))
@@ -41,7 +41,7 @@
   [_model _k timelines]
   (run! #(when % (check-can-read-keys %)) timelines)
   (let [writable (collection/content-writable-collection-ids (map :collection_id (remove nil? timelines))
-                                                             {:root-namespace nil})]
+                                                             {:root-namespace nil, :audit-rules? false})]
     (for [timeline timelines]
       (when timeline
         (vary-meta timeline assoc :can-write? (contains? writable (:collection_id timeline)))))))

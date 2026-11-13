@@ -181,11 +181,11 @@
   (run! #(when % (check-can-read-keys %)) cards)
   (let [rows                            (remove nil? cards)
         readable                        (collection/content-readable-collection-ids (map :collection_id rows)
-                                                                                    {:root-namespace nil})
+                                                                                    {:root-namespace nil, :audit-rules? true})
         {:keys [document-id documents]} (parent-documents rows :can-read?)
         summary-readable                (delay (collection/content-readable-collection-ids
                                                 (map :collection_id (vals documents))
-                                                {:root-namespace nil}))]
+                                                {:root-namespace nil, :audit-rules? false}))]
     (for [card cards]
       (when card
         (vary-meta card assoc :can-read?
@@ -206,7 +206,7 @@
   (run! #(when % (check-can-write-keys %)) cards)
   (let [rows                            (remove nil? cards)
         writable                        (collection/content-writable-collection-ids (map :collection_id rows)
-                                                                                    {:root-namespace nil})
+                                                                                    {:root-namespace nil, :audit-rules? true})
         {:keys [document-id documents]} (parent-documents rows :can-write?)]
     (for [card cards]
       (when card

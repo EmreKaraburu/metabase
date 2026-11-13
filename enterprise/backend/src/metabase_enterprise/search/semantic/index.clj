@@ -974,7 +974,7 @@
         doc->t2-model (fn [doc] (:model (search/spec (:model doc))))
         {fast-docs true slow-docs false} (group-by #(contains? collection-id-only-search-models (:model %)) docs)
         readable (when (seq fast-docs)
-                   (collection/content-readable-collection-ids (map :collection_id fast-docs) {:root-namespace nil}))
+                   (collection/content-readable-collection-ids (map :collection_id fast-docs) {:root-namespace nil, :audit-rules? true}))
         fast-filtered (filterv #(contains? readable (:collection_id %)) fast-docs)
         slow-t2-instances (vec
                            (for [[t2-model ids] (u/group-by doc->t2-model :id slow-docs)

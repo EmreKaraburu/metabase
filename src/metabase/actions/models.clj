@@ -320,9 +320,9 @@
   (run! #(when % (check-can-read-keys %)) actions)
   (let [rows          (remove nil? actions)
         readable      (collection/content-readable-collection-ids (map :collection_id (remove model-less-root? rows))
-                                                                  {:root-namespace nil})
+                                                                  {:root-namespace nil, :audit-rules? false})
         root-readable (delay (contains? (collection/content-readable-collection-ids
-                                         [nil] {:root-namespace collection/data-actions-ns})
+                                         [nil] {:root-namespace collection/data-actions-ns, :audit-rules? false})
                                         nil))]
     (for [action actions]
       (when action
@@ -339,11 +339,11 @@
         superuser?    (mi/superuser?)
         writable      (if superuser?
                         (collection/content-writable-collection-ids (map :collection_id (remove model-less-root? rows))
-                                                                    {:root-namespace nil})
+                                                                    {:root-namespace nil, :audit-rules? false})
                         #{})
         root-writable (delay (and (not (remote-sync/read-only?))
                                   (contains? (collection/content-writable-collection-ids
-                                              [nil] {:root-namespace collection/data-actions-ns})
+                                              [nil] {:root-namespace collection/data-actions-ns, :audit-rules? false})
                                              nil)))]
     (for [action actions]
       (when action

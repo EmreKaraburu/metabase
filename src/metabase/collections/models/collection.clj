@@ -484,27 +484,31 @@
 
 (defn content-readable-collection-ids
   "The ids among `collection-ids`, a nil id for the root Collection of the `:root-namespace` option included, of the
-  Collections whose content the current user reads: those they read that aren't the hidden audit Collection, from
-  one permission query."
-  [collection-ids options]
-  (let [permissions (perms/collection-permissions-for-user (api/current-user-info) (vec collection-ids) options)]
+  Collections whose content the current user reads, from one permission query: those they read and, with the
+  `:audit-rules?` option, as for Cards and Dashboards, that aren't the hidden audit Collection."
+  [collection-ids {:keys [audit-rules?] :as options}]
+  (let [permissions (perms/collection-permissions-for-user (api/current-user-info) (vec collection-ids)
+                                                           (select-keys options [:root-namespace]))]
     (into #{}
           (filter (fn [id]
                     (and (perms/collection-permission-at-least? (get permissions id) :read)
-                         (not (and id (audit-collection-hidden? id))))))
+                         (not (and audit-rules? id (audit-collection-hidden? id))))))
           (keys permissions))))
 
 (defn content-writable-collection-ids
   "The ids among `collection-ids`, a nil id for the root Collection of the `:root-namespace` option included, of the
-  Collections whose content the current user writes: those they write that aren't the audit Collection and that
-  remote sync leaves writable, from one permission query and, on a read-only instance, one more."
-  [collection-ids options]
-  (let [permissions   (perms/collection-permissions-for-user (api/current-user-info) (vec collection-ids) options)
-        sync-writable (remote-sync-writable-collection-ids (keys permissions))]
+  Collections whose content the current user writes, from one permission query and, on a read-only instance, one
+  more: those they write, that remote sync leaves writable and, with the `:audit-rules?` option, as for Cards and
+  Dashboards, that aren't the audit Collection."
+  [collection-ids {:keys [audit-rules?] :as options}]
+  (let [permissions   (perms/collection-permissions-for-user (api/current-user-info) (vec collection-ids)
+                                                             (select-keys options [:root-namespace]))
+        sync-writable (remote-sync-writable-collection-ids (keys permissions))
+        audit-id      (when audit-rules? (:id (audit/default-audit-collection)))]
     (into #{}
           (filter (fn [id]
                     (and (perms/collection-permission-at-least? (get permissions id) :read-and-write)
-                         (not (and id (default-audit-collection? {:id id})))
+                         (not (and id (= id audit-id)))
                          (contains? sync-writable id))))
           (keys permissions))))
 

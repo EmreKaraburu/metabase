@@ -59,7 +59,7 @@
   [_model _k dashboards]
   (run! #(when % (check-can-read-keys %)) dashboards)
   (let [readable (collection/content-readable-collection-ids (map :collection_id (remove nil? dashboards))
-                                                             {:root-namespace nil})]
+                                                             {:root-namespace nil, :audit-rules? true})]
     (for [dashboard dashboards]
       (when dashboard
         (vary-meta dashboard assoc :can-read? (contains? readable (:collection_id dashboard)))))))
@@ -69,7 +69,7 @@
   [_model _k dashboards]
   (run! #(when % (check-can-read-keys %)) dashboards)
   (let [writable (collection/content-writable-collection-ids (map :collection_id (remove nil? dashboards))
-                                                             {:root-namespace nil})]
+                                                             {:root-namespace nil, :audit-rules? true})]
     (for [dashboard dashboards]
       (when dashboard
         (vary-meta dashboard assoc :can-write? (contains? writable (:collection_id dashboard)))))))

@@ -135,7 +135,7 @@
   [_model _k documents]
   (run! #(when % (check-can-read-keys %)) documents)
   (let [readable (collection/content-readable-collection-ids (map :collection_id (remove nil? documents))
-                                                             {:root-namespace nil})]
+                                                             {:root-namespace nil, :audit-rules? false})]
     (for [document documents]
       (when document
         (vary-meta document assoc :can-read? (boolean (and (contains? readable (:collection_id document))
@@ -146,7 +146,7 @@
   [_model _k documents]
   (run! #(when % (check-can-read-keys %)) documents)
   (let [writable (collection/content-writable-collection-ids (map :collection_id (remove nil? documents))
-                                                             {:root-namespace nil})]
+                                                             {:root-namespace nil, :audit-rules? false})]
     (for [document documents]
       (when document
         (vary-meta document assoc :can-write? (boolean (and (contains? writable (:collection_id document))

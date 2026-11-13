@@ -108,7 +108,7 @@
   [_model _k dashcards]
   (let [collection-ids (card-collection-ids dashcards)
         readable       (collection/content-readable-collection-ids (into #{} cat (vals collection-ids))
-                                                                   {:root-namespace nil})]
+                                                                   {:root-namespace nil, :audit-rules? false})]
     (for [dashcard dashcards]
       (when dashcard
         (vary-meta dashcard assoc :can-read? (every? #(contains? readable %) (get collection-ids (:id dashcard))))))))
@@ -119,7 +119,7 @@
   [_model _k dashcards]
   (let [collection-ids (card-collection-ids dashcards)
         writable       (collection/content-writable-collection-ids (into #{} cat (vals collection-ids))
-                                                                   {:root-namespace nil})]
+                                                                   {:root-namespace nil, :audit-rules? false})]
     (for [dashcard dashcards]
       (when dashcard
         (vary-meta dashcard assoc :can-write? (every? #(contains? writable %) (get collection-ids (:id dashcard))))))))

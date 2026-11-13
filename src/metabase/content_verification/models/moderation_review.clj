@@ -52,11 +52,11 @@
         (vary-meta review assoc :can-read? can-read)))))
 
 (methodical/defmethod t2/batched-hydrate [:model/ModerationReview :can-write?]
-  [_model k reviews]
+  [_model _k reviews]
   (let [can-write (root-collection-permission-at-least? :read-and-write)]
     (for [review reviews]
       (when review
-        (assoc review k can-write)))))
+        (vary-meta review assoc :can-write? can-write)))))
 
 (defmethod mi/can-read? :model/ModerationReview
   ([review]

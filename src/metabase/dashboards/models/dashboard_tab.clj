@@ -2,6 +2,7 @@
   (:require
    [medley.core :as m]
    [metabase.api.common :as api]
+   [metabase.collections.models.collection :as collection]
    [metabase.dashboards.db :as dashboards.db]
    [metabase.dashboards.models.dashboard-card :as dashboard-card]
    [metabase.dashboards.schema :as dashboards.schema]
@@ -44,29 +45,37 @@
     (for [{:keys [id] :as tab} tabs]
       (assoc tab :cards (get tab-id->dashcards id [])))))
 
-(defn- dashboard-permissions
-  "Whether the current user passes `check`, `mi/can-read?` or `mi/can-write?`, on the Dashboard of each of `tabs`, by
-  Dashboard id, the Dashboards hydrated with `k` together."
-  [k check tabs]
+(defn- dashboard-collection-ids
+  "The id of the Collection, nil for the root, of the Dashboard of each of `tabs`, by Dashboard id, the Dashboards
+  loaded together."
+  [tabs]
   (run! #(when % (api/check-500 (contains? % :dashboard_id) "No :dashboard_id is set for a DashboardTab.")) tabs)
   (let [ids (into [] (comp (remove nil?) (keep :dashboard_id) (distinct)) tabs)]
     (if (seq ids)
-      (into {} (map (juxt :id check)) (t2/hydrate (dashboards.db/dashboard-collection-rows ids) k))
+      (into {} (map (juxt :id :collection_id)) (dashboards.db/dashboard-collection-rows ids))
       {})))
 
 (methodical/defmethod t2/batched-hydrate [:model/DashboardTab :can-read?]
-  [_model k tabs]
-  (let [permissions (dashboard-permissions k mi/can-read? tabs)]
+  "Whether the current user reads each of `tabs`: the content of the Collection of its Dashboard, answered together."
+  [_model _k tabs]
+  (let [collection-ids (dashboard-collection-ids tabs)
+        readable       (collection/content-readable-collection-ids (vals collection-ids)
+                                                                   {:root-namespace nil, :audit-rules? false})]
     (for [tab tabs]
       (when tab
-        (vary-meta tab assoc :can-read? (boolean (get permissions (:dashboard_id tab))))))))
+        (vary-meta tab assoc :can-read? (and (contains? collection-ids (:dashboard_id tab))
+                                             (contains? readable (get collection-ids (:dashboard_id tab)))))))))
 
 (methodical/defmethod t2/batched-hydrate [:model/DashboardTab :can-write?]
-  [_model k tabs]
-  (let [permissions (dashboard-permissions k mi/can-write? tabs)]
+  "Whether the current user writes each of `tabs`: the content of the Collection of its Dashboard, answered together."
+  [_model _k tabs]
+  (let [collection-ids (dashboard-collection-ids tabs)
+        writable       (collection/content-writable-collection-ids (vals collection-ids)
+                                                                   {:root-namespace nil, :audit-rules? false})]
     (for [tab tabs]
       (when tab
-        (vary-meta tab assoc :can-write? (boolean (get permissions (:dashboard_id tab))))))))
+        (vary-meta tab assoc :can-write? (and (contains? collection-ids (:dashboard_id tab))
+                                              (contains? writable (get collection-ids (:dashboard_id tab)))))))))
 
 (defmethod mi/can-read? :model/DashboardTab
   ([tab]

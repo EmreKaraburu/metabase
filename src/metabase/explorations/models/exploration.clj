@@ -58,7 +58,7 @@
   [_model _k explorations]
   (run! #(when % (check-can-read-keys %)) explorations)
   (let [readable (collection/content-readable-collection-ids (map :collection_id (remove nil? explorations))
-                                                             {:root-namespace nil})]
+                                                             {:root-namespace nil, :audit-rules? false})]
     (for [exploration explorations]
       (when exploration
         (vary-meta exploration assoc :can-read? (contains? readable (:collection_id exploration)))))))
@@ -68,7 +68,7 @@
   [_model _k explorations]
   (run! #(when % (check-can-read-keys %)) explorations)
   (let [writable (collection/content-writable-collection-ids (map :collection_id (remove nil? explorations))
-                                                             {:root-namespace nil})]
+                                                             {:root-namespace nil, :audit-rules? false})]
     (for [exploration explorations]
       (when exploration
         (vary-meta exploration assoc :can-write? (contains? writable (:collection_id exploration)))))))
