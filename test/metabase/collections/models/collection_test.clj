@@ -403,7 +403,8 @@
   "Every Collection ID the current user can see under `visibility-config`."
   ([] (visible-collection-ids {}))
   ([visibility-config]
-   (let [user-info {:user-id api/*current-user-id*, :is-superuser? (boolean api/*is-superuser?*)}
+   (let [user-info {:user-id api/*current-user-id*, :is-superuser? (boolean api/*is-superuser?*)
+                    :is-data-analyst? (boolean api/*is-data-analyst?*)}
          options   (merge {:root-namespace nil} visibility-config)]
      (cond-> (t2/select-pks-set :model/Collection
                                 {:where (perms/visible-collections-filter-clause :collection.id user-info options)})
