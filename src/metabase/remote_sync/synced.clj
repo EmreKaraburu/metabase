@@ -3,8 +3,6 @@
   can't on a read-only instance."
   (:require
    [metabase.premium-features.defenterprise :refer [defenterprise]]
-   [metabase.remote-sync.db :as remote-sync.db]
-   [metabase.remote-sync.schema :as remote-sync.schema]
    [metabase.remote-sync.spec :as remote-sync.spec]
    [metabase.serialization.core :as serialization]
    [metabase.util.malli :as mu]))

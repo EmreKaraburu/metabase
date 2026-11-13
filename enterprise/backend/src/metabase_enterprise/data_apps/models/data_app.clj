@@ -130,8 +130,8 @@
 
 (defmethod mi/can-write? :model/DataApp
   ([app]       (mi/can-write? :model/DataApp (:id app)))
-  ([_model pk] (and api/*is-superuser?*
-                    (not (remote-sync/read-only?)))))
+  ([_model _pk] (and api/*is-superuser?*
+                     (not (remote-sync/read-only?)))))
 
 (defmethod mi/can-create? :model/DataApp
   [_model _instance]

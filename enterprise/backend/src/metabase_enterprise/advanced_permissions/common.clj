@@ -1,12 +1,11 @@
 (ns metabase-enterprise.advanced-permissions.common
   (:require
-   [metabase.collections.models.collection :as collection]
    [metabase-enterprise.advanced-permissions.db :as advanced-permissions.db]
    [metabase.api.common :as api]
    [metabase.audit-app.core :as audit]
+   [metabase.collections.models.collection :as collection]
    [metabase.permissions.core :as perms]
    [metabase.premium-features.core :refer [defenterprise]]
-   [metabase.remote-sync.core :as remote-sync]
    [metabase.util :as u]
    [metabase.warehouses.models.database :as database]))
 

@@ -46,4 +46,3 @@
    model  :- :keyword
    opts   :- ::remote-sync.schema/synced-filter-opts]
   [:in (u/qualified-key alias column) (synced-ids-clause model opts)])
-
