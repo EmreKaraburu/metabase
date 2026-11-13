@@ -502,7 +502,7 @@
   user whose access comes through that path."
   [table-id]
   (when-let [table (t2/select-one :model/Table :id table-id :active true)]
-    (when (mi/can-read? table)
+    (when (mi/can-read? (t2/hydrate table :can_read))
       (:db_id table))))
 
 (mu/defn tables-by-id

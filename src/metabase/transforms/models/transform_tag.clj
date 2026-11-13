@@ -37,10 +37,10 @@
         (or api/*is-superuser?*
             (and (api/entitled-data-analyst?)
                  (let [transforms (transform/transforms-with-tags [(:id instance)])]
-                   (every? mi/can-write? transforms))))))
+                   (every? mi/can-write? (t2/hydrate transforms :can_write)))))))
   ([_model pk]
    (when-let [tag (transforms.db/tag pk)]
-     (mi/can-write? tag))))
+     (mi/can-write? (t2/hydrate tag :can_write)))))
 
 (defmethod mi/can-create? :model/TransformTag
   [_model _instance]
@@ -95,7 +95,7 @@
           ;; Fetch transforms and check can-write? for each
           transforms (when (seq transform-ids)
                        (transforms.db/transforms transform-ids))
-          transform-id->can-write (into {} (map (juxt :id mi/can-write?)) transforms)
+          transform-id->can-write (into {} (map (juxt :id mi/can-write?)) (t2/hydrate transforms :can_write))
           ;; Build tag-id -> can_run map
           tag-id->transform-ids (reduce (fn [acc {:keys [tag_id transform_id]}]
                                           (update acc tag_id (fnil conj #{}) transform_id))

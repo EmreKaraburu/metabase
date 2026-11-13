@@ -25,7 +25,8 @@
    [metabase.models.interface :as mi]
    [metabase.query-permissions.core :as query-perms]
    [metabase.serialization.protocol.mp :as serialization.protocol.mp]
-   [metabase.util.log :as log]))
+   [metabase.util.log :as log]
+   [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
 
@@ -82,7 +83,7 @@
     api/*current-user-id*   (try
                               (if (and audited? *audit-refusals?*)
                                 (api/read-check row)
-                                (do (api/check-403 (mi/can-read? row)) row))
+                                (do (api/check-403 (mi/can-read? (t2/hydrate row :can_read))) row))
                               (catch clojure.lang.ExceptionInfo e
                                 (if (= 403 (:status-code (ex-data e)))
                                   (do (reset! *last-lookup-refused?* true)

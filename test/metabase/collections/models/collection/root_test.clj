@@ -4,7 +4,8 @@
    [metabase.collections.models.collection.root :as collection.root]
    [metabase.models.interface :as mi]
    [metabase.permissions.core :as perms]
-   [metabase.test :as mt]))
+   [metabase.test :as mt]
+   [toucan2.core :as t2]))
 
 (deftest perms-test
   (doseq [premium-feature-set [#{} #{:audit-app}]
@@ -29,5 +30,5 @@
       (mt/with-non-admin-groups-no-root-collection-perms
         (mt/with-current-user (mt/user->id :rasta)
           (let [root (assoc collection.root/root-collection :namespace :snippets)]
-            (is (true? (mi/can-read? root)))
-            (is (true? (mi/can-write? root)))))))))
+            (is (true? (mi/can-read? (t2/hydrate root :can_read))))
+            (is (true? (mi/can-write? (t2/hydrate root :can_write))))))))))

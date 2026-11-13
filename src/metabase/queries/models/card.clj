@@ -187,9 +187,9 @@
           :read  (if-let [snapshots (summary-card-snapshots card document)]
                    (and (mi/current-user-has-full-permissions? :read document)
                         (every? cached-result/viewer-can-view-cached-result? snapshots))
-                   (mi/can-read? document))
+                   (mi/can-read? (t2/hydrate document :can_read)))
           :write (and (nil? (:exploration_id document))
-                      (mi/can-write? document)))))))
+                      (mi/can-write? (t2/hydrate document :can_write))))))))
 
 ;; NOTE: deliberately a plain `defmethod` rather than `perms/define-collection-based-visibility!`.
 ;; That macro's contract is "read perms are determined *fully* by `:collection_id`", which stopped
@@ -206,7 +206,7 @@
    (and (perms/can-read-via-parent-collection? (:collection_id instance))
         (parent-document-permits? instance :read)))
   ([_ pk]
-   (mi/can-read? (queries.db/card pk))))
+   (mi/can-read? (t2/hydrate (queries.db/card pk) :can_read))))
 
 (defmethod mi/can-write? :model/Card
   ([instance]
@@ -221,7 +221,7 @@
     (mi/current-user-has-full-permissions? (mi/perms-objects-set instance :write))
     (parent-document-permits? instance :write)))
   ([_ pk]
-   (mi/can-write? (queries.db/card pk))))
+   (mi/can-write? (t2/hydrate (queries.db/card pk) :can_write))))
 
 (defn model?
   "Returns true if `card` is a model."
@@ -320,6 +320,7 @@
    cards k
    #(group-by :source_card_id
               (->> (queries.db/metric-cards-for-source-cards (map :id cards))
+                   (#(t2/hydrate % :can_read))
                    (filter mi/can-read?)))
    :id))
 

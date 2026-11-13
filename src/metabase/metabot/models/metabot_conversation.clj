@@ -32,7 +32,7 @@
                   (participant? conversation-id user-id))))))
   ([_model pk]
    (when-let [instance (metabot.db/conversation-id-and-user-id pk)]
-     (mi/can-read? instance))))
+     (mi/can-read? (t2/hydrate instance :can_read)))))
 
 (methodical/defmethod t2/batched-hydrate [:model/MetabotConversation :user]
   "Batch-hydrate `:user` (id/email/name only) — semantically the *originator*.

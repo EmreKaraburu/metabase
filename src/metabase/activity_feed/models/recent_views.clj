@@ -378,13 +378,13 @@
 
 (defmethod fill-recent-view-info :collection [{:keys [_model model_id timestamp model_object]}]
   (when-let [collection (and
-                         (mi/can-read? model_object)
+                         (mi/can-read? (t2/hydrate model_object :can_read))
                          (ellide-archived model_object))]
     {:id model_id
      :name (:name collection)
      :description (:description collection)
      :model :collection
-     :can_write (mi/can-write? collection)
+     :can_write (mi/can-write? (t2/hydrate collection :can_write))
      :timestamp (str timestamp)
      :authority_level (some-> (:authority_level collection) name)
      :collection_type (some-> (:type collection) name)
@@ -405,13 +405,13 @@
     (when (and (not= "hidden" (:visibility_type table))
                (:database-name table)
                (:active table)
-               (mi/can-read? table))
+               (mi/can-read? (t2/hydrate table :can_read)))
       {:id model_id
        :name (:name table)
        :description (:description table)
        :model :table
        :display_name (:display_name table)
-       :can_write (mi/can-write? table)
+       :can_write (mi/can-write? (t2/hydrate table :can_write))
        :timestamp (str timestamp)
        :table_schema (:schema table)
        :database {:id (:db_id table)

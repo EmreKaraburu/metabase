@@ -119,12 +119,12 @@
             :read  (perms/grant-collection-read-permissions! (perms-group/all-users) coll-id)
             :write (perms/grant-collection-readwrite-permissions! (perms-group/all-users) coll-id))
           (mt/with-current-user (mt/user->id :rasta)
-            {:read      (boolean (mi/can-read? card-test))
+            {:read      (boolean (mi/can-read? (t2/hydrate card-test :can_read)))
              :read-pk   (boolean (mi/can-read? :model/CardTest test-id))
              :run       (boolean (data-testing.models.card-test/can-run? card-test))
              :create    (boolean (mi/can-create? :model/CardTest {:card_id card-id}))
              :update    (boolean (mi/can-update? card-test {:name "renamed"}))
-             :write     (boolean (mi/can-write? card-test))
+             :write     (boolean (mi/can-write? (t2/hydrate card-test :can_write)))
              :write-pk  (boolean (mi/can-write? :model/CardTest test-id))}))))))
 
 (defn- allowed
@@ -181,7 +181,7 @@
                      {:run    (boolean (data-testing.models.card-test/can-run? card-test))
                       :create (boolean (mi/can-create? :model/CardTest {:card_id card-id}))
                       :update (boolean (mi/can-update? card-test {:name "renamed"}))
-                      :write  (boolean (mi/can-write? card-test))})))))))))
+                      :write  (boolean (mi/can-write? (t2/hydrate card-test :can_write)))})))))))))
 
 (deftest permissions-of-a-test-of-a-card-with-no-query-test
   (mt/with-temp [:model/Card     {card-id :id} {:dataset_query {}}
@@ -192,9 +192,9 @@
       (mt/with-current-user (mt/user->id :crowberto)
         (is (= {:run true :write true}
                {:run   (boolean (data-testing.models.card-test/can-run? card-test))
-                :write (boolean (mi/can-write? card-test))}))))
+                :write (boolean (mi/can-write? (t2/hydrate card-test :can_write)))}))))
     (testing "another user may not: the card has no Database to write native SQL against"
       (mt/with-current-user (mt/user->id :rasta)
         (is (= {:run false :write false}
                {:run   (boolean (data-testing.models.card-test/can-run? card-test))
-                :write (boolean (mi/can-write? card-test))}))))))
+                :write (boolean (mi/can-write? (t2/hydrate card-test :can_write)))}))))))

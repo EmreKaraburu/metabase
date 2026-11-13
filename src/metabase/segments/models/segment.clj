@@ -86,9 +86,9 @@
 (defmethod mi/can-read? :model/Segment
   ([instance]
    (let [table (:table (t2/hydrate instance :table))]
-     (mi/can-read? table)))
+     (mi/can-read? (t2/hydrate table :can_read))))
   ([_model pk]
-   (mi/can-read? (segments.db/segment pk))))
+   (mi/can-read? (t2/hydrate (segments.db/segment pk) :can_read))))
 
 ;; Segments can be written by
 ;; a) superusers
@@ -108,7 +108,7 @@
                     (u/the-id table))))
           (remote-sync/can-write? :model/TableUserSettings (:id table)))))
   ([_model pk]
-   (mi/can-write? (segments.db/segment pk))))
+   (mi/can-write? (t2/hydrate (segments.db/segment pk) :can_write))))
 
 ;; Segments can be created by
 ;; a) superusers

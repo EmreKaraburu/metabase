@@ -120,7 +120,7 @@
           tables)
       (if include-editable-data-model
         (schema.table/filter-tables-by-data-model-perms tables)
-        (filter mi/can-read? tables))
+        (filter mi/can-read? (t2/hydrate tables :can_read)))
       (into [] (comp (if can-query (filter mi/can-query?) identity)
                      (map schema.table/present-table))
             tables))))
@@ -347,7 +347,7 @@
     (for [origin-field (warehouse-schema-rest.db/active-fields-targeting field-ids)
           :let [origin-field (t2/hydrate origin-field [:table :db])]
           :when (and (-> origin-field :table :active)
-                     (mi/can-read? origin-field))
+                     (mi/can-read? (t2/hydrate origin-field :can_read)))
           :let [origin-field (update origin-field :table schema.table/present-table)]]
       ;; it's silly to be hydrating some of these tables/dbs
       {:relationship   :Mt1

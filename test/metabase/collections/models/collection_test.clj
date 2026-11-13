@@ -1780,22 +1780,22 @@
           (mt/with-additional-premium-features #{:audit-app}
             (is (not (mi/can-write? (t2/hydrate audit-collection :can_write)))
                 "Admin isn't able to write to audit collection")
-            (is (not (mi/can-write? audit-card))
+            (is (not (mi/can-write? (t2/hydrate audit-card :can_write)))
                 "Admin isn't able to write to audit collection card")
-            (is (not (mi/can-write? audit-dashboard))
+            (is (not (mi/can-write? (t2/hydrate audit-dashboard :can_write)))
                 "Admin isn't able to write to audit collection dashboard"))
           (mt/with-premium-features #{}
             (is (not (mi/can-read? (t2/hydrate audit-collection :can_read)))
                 "Admin isn't able to read audit collection when audit app isn't enabled")
-            (is (not (mi/can-read? audit-card))
+            (is (not (mi/can-read? (t2/hydrate audit-card :can_read)))
                 "Admin isn't able to read audit collection card when audit app isn't enabled")
-            (is (not (mi/can-read? audit-dashboard))
+            (is (not (mi/can-read? (t2/hydrate audit-dashboard :can_read)))
                 "Admin isn't able to read audit collection dashboard when audit app isn't enabled")
             (is (not (mi/can-read? (t2/hydrate cr-collection :can_read)))
                 "Admin isn't able to read custom reports collection when audit app isn't enabled")
-            (is (not (mi/can-read? cr-card))
+            (is (not (mi/can-read? (t2/hydrate cr-card :can_read)))
                 "Admin isn't able to read custom reports card when audit app isn't enabled")
-            (is (not (mi/can-read? cr-dashboard))
+            (is (not (mi/can-read? (t2/hydrate cr-dashboard :can_read)))
                 "Admin isn't able to read custom reports dashboard when audit app isn't enabled")))))))
 
 (deftest collection-insert-updates-permission-graph-revision-test
@@ -1955,9 +1955,9 @@
     (mt/with-test-user :rasta
       (testing "check throws on Collection without hydrated answer"
         (is (thrown-with-msg? clojure.lang.ExceptionInfo #"No :can_read is hydrated on a Collection"
-                              (mi/can-read? collection)))
+                              (mi/can-read? (t2/hydrate collection :can_read))))
         (is (thrown-with-msg? clojure.lang.ExceptionInfo #"No :can_write is hydrated on a Collection"
-                              (mi/can-write? collection))))
+                              (mi/can-write? (t2/hydrate collection :can_write)))))
       (testing "check returns hydrated answer"
         (is (true? (mi/can-read? (t2/hydrate collection :can_read))))
         (is (true? (mi/can-write? (t2/hydrate collection :can_write))))

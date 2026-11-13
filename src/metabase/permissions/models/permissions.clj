@@ -330,7 +330,7 @@
   [_model m]
   (if-let [collection-id (:collection_id m)]
     (mi/can-write? (t2/hydrate (api/check-404 (permissions.db/collection collection-id)) :can_write))
-    (mi/can-write? collection.root/root-collection)))
+    (mi/can-write? (t2/hydrate collection.root/root-collection :can_write))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                               ENTITY + LIFECYCLE                                               |
@@ -515,7 +515,7 @@
     `(do
        (defmethod mi/can-read? ~target
          ([instance#] (can-read-via-parent-collection? (:collection_id instance#)))
-         ([_# pk#]    (mi/can-read? (permissions.db/instance-by-id ~target pk#))))
+         ([_# pk#]    (mi/can-read? (t2/hydrate (permissions.db/instance-by-id ~target pk#) :can_read))))
        (register-collection-id-only-read-method! ~target (get-method mi/can-read? ~target)))
 
     (string? target)

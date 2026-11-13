@@ -573,6 +573,7 @@
   (let [all (metabot.db/non-audit-databases)
         _   (perms/prime-database-perms-cache {:db-ids (into #{} (map :id) all)})
         dbs (->> all
+                 (#(t2/hydrate % :can_read))
                  (filter mi/can-read?)
                  (mapv present-database))]
     (list-result :databases dbs query-params)))
@@ -632,6 +633,7 @@
         _      (warehouses/get-database db-id)
         _      (perms/prime-table-perms-cache {:db-ids #{db-id}})
         tables (->> (metabot.db/active-tables-for-database db-id)
+                    (#(t2/hydrate % :can_read))
                     (filter mi/can-read?)
                     (mapv present-table))]
     (list-result :database-tables tables query-params)))
@@ -648,7 +650,7 @@
    Readable first, then curated, so the listing reveals nothing about a Table the user cannot read."
   [db-id]
   (let [_       (perms/prime-table-perms-cache {:db-ids #{db-id}})
-        tables  (filter mi/can-read? (metabot.db/active-tables-for-database db-id))
+        tables  (filter mi/can-read? (t2/hydrate (metabot.db/active-tables-for-database db-id) :can_read))
         curated (curation/curated-ids (map (fn [{:keys [id]}] ["table" id]) tables))]
     (into #{}
           (comp (filter (fn [{:keys [id]}] (contains? curated ["table" id])))
@@ -675,6 +677,7 @@
         _      (when-not (seq rows)
                  (missing-schema! {:database-id db-id :schema schema-name}))
         tables (->> rows
+                    (#(t2/hydrate % :can_read))
                     (filter mi/can-read?)
                     (mapv present-table))]
     (list-result :database-schema-tables tables query-params)))
@@ -845,6 +848,7 @@
         transforms (when db-id
                      (->> (metabot.db/transforms-for-source-database db-id)
                           (filter (fn [t] (some #{table-id} (transform-source-table-ids t))))
+                          (#(t2/hydrate % :can_read))
                           (filter mi/can-read?)
                           (mapv present-transform)))]
     (list-result :table-derived (concat cards transforms) query-params)))
@@ -931,6 +935,7 @@
         source-table-ids (transform-source-table-ids transform)
         source-tables    (when (seq source-table-ids)
                            (->> (metabot.db/table-summaries (set source-table-ids))
+                                (#(t2/hydrate % :can_read))
                                 (filter mi/can-read?)
                                 (mapv present-table)))
         db-id            (:source_database_id transform)
@@ -948,7 +953,7 @@
         ;; tables are readable). Gate it here so users who can read the transform definition
         ;; but lack perms on the target database don't see the target's name/schema.
         target-table (when-let [tt (:table transform)]
-                       (when (mi/can-read? tt) tt))
+                       (when (mi/can-read? (t2/hydrate tt :can_read)) tt))
         db-id        (:target_db_id transform)
         items        (cond-> []
                        db-id        (conj {:type "database"

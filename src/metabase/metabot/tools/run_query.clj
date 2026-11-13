@@ -246,7 +246,7 @@
   (let [{:keys [kind card-id table-id]} (tools.u/metric-required-source metric)
         source-card (when (= :card kind) (metabot.db/card card-id))]
     (cond
-      (some-> source-card mi/can-read?)
+      (some-> source-card (t2/hydrate :can_read) mi/can-read?)
       {:card-type (:type source-card)
        :entity-id (:entity_id source-card)}
 
@@ -273,7 +273,7 @@
                          parsed))]
     ;; A question the user can't read is treated like one that doesn't exist, so its id tells them nothing.
     (let [card (metabot.db/card card-id)]
-      (when (some-> card mi/can-read?)
+      (when (some-> card (t2/hydrate :can_read) mi/can-read?)
         (when (= :metric (:type card))
           (metric-not-runnable! {:query-id query-id, :source (metric-source card)}))
         ;; The rows go to the model: a curated-only Metabot runs a saved question only when `read_resource` would
@@ -530,7 +530,7 @@
         ;; Every refusal past this point says something about the SQL of the questions the query reads, and
         ;; compiling expands that SQL, so only a user who can read each of them gets that far. Anyone else gets
         ;; the refusal the QP would give them for a question they can't read.
-        (when (and (or inline-sql? sql-card?) (not-every? #(some-> % mi/can-read?) cards))
+        (when (and (or inline-sql? sql-card?) (not-every? #(some-> % (t2/hydrate :can_read) mi/can-read?) cards))
           (no-permission! {:query-id query-id}))
         (when sql-card?
           (check-sql-runnable! query-id (:database normalized) true allow-non-sql?))

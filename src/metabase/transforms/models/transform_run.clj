@@ -52,7 +52,7 @@
                   (mi/can-read? :model/Transform transform-id)))))
   ([_model pk]
    (when-let [run (transforms.db/run pk)]
-     (mi/can-read? run))))
+     (mi/can-read? (t2/hydrate run :can_read)))))
 
 (mi/define-simple-hydration-method add-transform-runs
   :transform-runs

@@ -418,7 +418,7 @@
    sandboxed-user exclusion apply — optionally narrowed to names containing any query as a
    case-insensitive substring."
   [queries archived]
-  (let [readable (filter mi/can-read? (mcp.db/snippets-by-archived-state archived))
+  (let [readable (filter mi/can-read? (t2/hydrate (mcp.db/snippets-by-archived-state archived) :can_read))
         matches  (if (seq queries)
                    (let [needles (mapv u/lower-case-en queries)]
                      (filter (fn [{:keys [name]}]

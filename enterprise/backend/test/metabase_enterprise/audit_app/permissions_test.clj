@@ -159,16 +159,16 @@
   (install-audit-db-if-needed!)
   (mt/with-temp [:model/Card audit-child-card {:collection_id (:id (audit/default-audit-collection))}
                  :model/Card root-child-card {:collection_id nil}]
-    (is (false? (mi/can-write? audit-child-card)))
+    (is (false? (mi/can-write? (t2/hydrate audit-child-card :can_write))))
     (binding [api/*current-user-permissions-set* (delay #{"/collection/root/"})]
-      (is (true? (mi/can-write? root-child-card))))
+      (is (true? (mi/can-write? (t2/hydrate root-child-card :can_write)))))
     (binding [api/*current-user-permissions-set* (delay #{"/"})]
-      (is (true? (mi/can-write? root-child-card))))))
+      (is (true? (mi/can-write? (t2/hydrate root-child-card :can_write)))))))
 
 (deftest can-write-is-false-for-audit-content-cards-test
   (install-audit-db-if-needed!)
   (let [audit-cards (t2/select :model/Card :collection_id (:id (audit/default-audit-collection)))]
-    (is (= #{false} (set (map mi/can-write? audit-cards))))))
+    (is (= #{false} (set (map mi/can-write? (t2/hydrate audit-cards :can_write)))))))
 
 (deftest cannot-edit-audit-content-cards-over-api
   (install-audit-db-if-needed!)
@@ -180,16 +180,16 @@
   (install-audit-db-if-needed!)
   (mt/with-temp [:model/Dashboard audit-child-dashboard {:collection_id (:id (audit/default-audit-collection))}
                  :model/Dashboard root-child-dashboard {:collection_id nil}]
-    (is (false? (mi/can-write? audit-child-dashboard)))
+    (is (false? (mi/can-write? (t2/hydrate audit-child-dashboard :can_write))))
     (binding [api/*current-user-permissions-set* (delay #{"/collection/root/"})]
-      (is (true? (mi/can-write? root-child-dashboard))))
+      (is (true? (mi/can-write? (t2/hydrate root-child-dashboard :can_write)))))
     (binding [api/*current-user-permissions-set* (delay #{"/"})]
-      (is (true? (mi/can-write? root-child-dashboard))))))
+      (is (true? (mi/can-write? (t2/hydrate root-child-dashboard :can_write)))))))
 
 (deftest can-write-is-false-for-audit-content-dashboards-test
   (install-audit-db-if-needed!)
   (let [audit-dashboards (t2/select :model/Dashboard :collection_id (:id (audit/default-audit-collection)))]
-    (is (= #{false} (set (map mi/can-write? audit-dashboards))))))
+    (is (= #{false} (set (map mi/can-write? (t2/hydrate audit-dashboards :can_write)))))))
 
 (deftest cannot-edit-audit-content-dashboards-over-api
   (install-audit-db-if-needed!)

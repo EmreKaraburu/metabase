@@ -934,7 +934,7 @@
       (ex-info (tru "The table must be an uploaded table.")
                {:status-code 422})
 
-      (not (and (mi/can-query? table) (mi/can-write? table)))
+      (not (and (mi/can-query? table) (mi/can-write? (t2/hydrate table :can_write))))
       (ex-info (tru "You don''t have permissions to do that.")
                {:status-code 403}))))
 

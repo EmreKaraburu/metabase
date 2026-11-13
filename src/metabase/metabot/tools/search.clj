@@ -487,7 +487,7 @@
   (when (seq ids)
     ;; only surface tables the current user can read — a curated entry may point at one they can't access
     (for [t (filter mi/can-read?
-                    (metabot.db/table-summaries ids))]
+                    (t2/hydrate (metabot.db/table-summaries ids) :can_read))]
       {:id              (:id t)
        :type            "table"
        :name            (:name t)
@@ -820,7 +820,7 @@
   [database-id]
   (when-not (and (pos-int? database-id)
                  (when-let [database (metabot.db/database-summary database-id)]
-                   (mi/can-read? database)))
+                   (mi/can-read? (t2/hydrate database :can_read))))
     (unavailable-database! {:database-id database-id})))
 
 (defrecord SearchTool [description args default-types search-opts]

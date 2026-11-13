@@ -524,7 +524,7 @@
       (let [curated (curation/curated-ids (map #(vector "card" %) card-ids))
             refused (into []
                           (filter #(and (not (contains? curated ["card" %]))
-                                        (some-> (metabot.db/card %) mi/can-read?)))
+                                        (some-> (metabot.db/card %) (t2/hydrate :can_read) mi/can-read?)))
                           card-ids)]
         (when (seq refused)
           (cards-not-curated! {:card-ids refused}))))))
@@ -688,7 +688,7 @@
   are shown because this conversation saved them, and a tool that later uses the card judges it again."
   [dashcards saved-charts]
   (if-not (shared/curated-only?)
-    mi/can-read?
+    #(mi/can-read? (t2/hydrate % :can_read))
     (let [card-ids        (into #{} (keep (comp :id :card)) dashcards)
           curated         (if (seq card-ids)
                             (curation/curated-ids (map #(vector "card" %) card-ids))

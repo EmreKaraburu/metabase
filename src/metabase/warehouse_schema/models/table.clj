@@ -346,7 +346,7 @@
      (:db_id instance)
      (:id instance))))
   ([_ pk]
-   (mi/can-read? (warehouse-schema.db/table pk))))
+   (mi/can-read? (t2/hydrate (warehouse-schema.db/table pk) :can_read))))
 
 (defmethod mi/can-query? :model/Table
   ;; Check if user can execute queries against this table.
@@ -387,7 +387,7 @@
   ([instance]
    (current-user-can-write-table? instance))
   ([_ pk]
-   (mi/can-write? (warehouse-schema.db/table pk))))
+   (mi/can-write? (t2/hydrate (warehouse-schema.db/table pk) :can_write))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Table :can_write]
   "Batched hydration for :can_write on tables."
@@ -518,6 +518,7 @@
     (fn [table-ids]
       (->> (binding [card-schema/*skip-dimension-backfill?* true]
              (warehouse-schema.db/unarchived-metric-cards-for-tables table-ids))
+           (#(t2/hydrate % :can_read))
            (filter mi/can-read?)))
     tables))
 

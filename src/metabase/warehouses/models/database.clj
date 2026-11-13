@@ -640,7 +640,7 @@
              details
              (sensitive-fields-for-db db)))]
     (next-method
-     (let [db (if (not (mi/can-write? db))
+     (let [db (if (not (mi/can-write? (t2/hydrate db :can_write)))
                 (do (log/debug "Fully redacting database details during json encoding.")
                     (dissoc db :details :write_data_details :admin_details :initial_sync_error))
                 (do (log/debug "Redacting sensitive fields within database details during json encoding.")

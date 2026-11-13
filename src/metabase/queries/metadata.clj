@@ -45,7 +45,7 @@
     (perms/prime-database-perms-cache {:db-ids (set ids)})
     (into [] (comp (filter mi/can-read?)
                    (map #(assoc % :native_permissions (get-native-perms-info %))))
-          (queries.db/databases ids))))
+          (t2/hydrate (queries.db/databases ids) :can_read))))
 
 (defn- field-id->table-id
   [field-ids]
@@ -56,7 +56,7 @@
 (defn- collect-recursive-snippets
   ([initial-snippet-ids]
    (when (seq initial-snippet-ids)
-     (let [snippets (into [] (filter mi/can-read?) (queries.db/snippets initial-snippet-ids))]
+     (let [snippets (into [] (filter mi/can-read?) (t2/hydrate (queries.db/snippets initial-snippet-ids) :can_read))]
        (collect-recursive-snippets (set snippets) snippets (set initial-snippet-ids)))))
   ([all-snippets snippets-to-recurse seen-ids]
    (let [->nested-snippet-ids (fn [snippet]
@@ -69,7 +69,7 @@
                                     snippet-id)))
          nested-snippet-ids   (into #{} (mapcat ->nested-snippet-ids) snippets-to-recurse)
          nested-snippets      (when (seq nested-snippet-ids)
-                                (into [] (filter mi/can-read?) (queries.db/snippets nested-snippet-ids)))]
+                                (into [] (filter mi/can-read?) (t2/hydrate (queries.db/snippets nested-snippet-ids) :can_read)))]
      (if-not (seq nested-snippet-ids)
        all-snippets
        (recur (into all-snippets nested-snippets)

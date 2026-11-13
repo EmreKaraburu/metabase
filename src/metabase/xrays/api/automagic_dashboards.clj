@@ -273,7 +273,7 @@
     (let [fields (t2/hydrate (xrays.db/fields-targeting field-id) :table)]
       (perms/prime-table-perms-cache {:table-ids (into #{} (map :table_id) fields)})
       (for [{:keys [table_id id] :as field} fields
-            :when (mi/can-read? field)]
+            :when (mi/can-read? (t2/hydrate field :can_read))]
         {:linked-table-id table_id
          :linked-field-id id}))))
 

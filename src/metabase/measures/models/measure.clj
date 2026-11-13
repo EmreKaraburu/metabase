@@ -65,9 +65,9 @@
   ([instance]
    (let [table (or (:table instance)
                    (measures.db/table (:table_id instance)))]
-     (mi/can-read? table)))
+     (mi/can-read? (t2/hydrate table :can_read))))
   ([_model pk]
-   (mi/can-read? (measures.db/measure pk))))
+   (mi/can-read? (t2/hydrate (measures.db/measure pk) :can_read))))
 
 ;; Measures can be written by superusers or data analysts with unrestricted view data permissions, but not on a
 ;; read-only instance that syncs their table.
@@ -85,7 +85,7 @@
                     (u/the-id table))))
           (remote-sync/can-write? :model/TableUserSettings (:id table)))))
   ([_model pk]
-   (mi/can-write? (measures.db/measure pk))))
+   (mi/can-write? (t2/hydrate (measures.db/measure pk) :can_write))))
 
 ;; Measures can be created by superusers or data analysts with unrestricted view data permissions, but not on a
 ;; read-only instance that syncs their table.

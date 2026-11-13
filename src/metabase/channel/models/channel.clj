@@ -78,7 +78,7 @@
   "Only include `:details` for callers who can write the channel, matching `remove-details-if-needed` in the channel
   API. Encoding at the model boundary keeps every response that returns a Channel consistent."
   [channel json-generator]
-  (next-method (if (mi/can-write? channel)
+  (next-method (if (mi/can-write? (t2/hydrate channel :can_write))
                  channel
                  (dissoc channel :details))
                json-generator))
