@@ -300,12 +300,13 @@
       (permissions.db/delete-related-permissions! group-id path paths))))
 
 (defn grant-permissions!
-  "Grant permissions for `group-or-id` and return the inserted permissions. Two-arity grants any arbitrary Permissions `path`."
+  "Grant the permissions `path` gives to `group-or-id`, returning nil."
   [group-or-id path]
   (try
     (permissions.db/insert-permissions! (map (fn [path-object]
                                                {:group_id (u/the-id group-or-id) :object path-object})
                                              (distinct (conj (perms.u/->v2-path path) path))))
+    nil
     ;; on some occasions through weirdness we might accidentally try to insert a key that's already been inserted
     (catch Throwable e
       (log/error (u/format-color 'red "Failed to grant permissions: %s" (ex-message e)))
