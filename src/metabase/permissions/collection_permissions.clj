@@ -62,6 +62,11 @@
                                                              (permissions.path/collection-readwrite-path root)
                                                              (permissions.path/collection-read-path root))))))
 
+(def ^:private collection-ids-per-query
+  "How many Collection ids one permission query asks about: enough for a whole Collection tree to cost a handful of
+  queries, and few enough for a database to take as a list."
+  10000)
+
 (defn- collection-id->permission
   "The permission of the user of `user-info` on each of the Collections with `collection-ids`, none of them nil."
   [user-info collection-ids]
@@ -77,12 +82,12 @@
       (into (zipmap collection-ids (repeat :none))
             (comp (mapcat #(permissions.db/collection-ranks user (vec %)))
                   (map (fn [{:keys [id rank]}] [id (rank->permission rank)])))
-            (partition-all 1000 collection-ids)))))
+            (partition-all collection-ids-per-query collection-ids)))))
 
 (mu/defn collection-permissions-for-user :- [:map-of [:maybe ms/PositiveInt] [:enum :read-and-write :read :none]]
   "The permission of the user of `user-info` on each of the Collections with `collection-ids`, as a map with an entry
   for every id asked. A nil id stands for the root Collection of the `:root-namespace` option and is answered under the
-  nil key. The Collections cost one query per 1,000 distinct ids, and the root one more when a nil id is asked."
+  nil key. The Collections cost one query per 10,000 distinct ids, and the root one more when a nil id is asked."
   [user-info                        :- ::permissions.schema/collection-user-info
    collection-ids                   :- [:sequential [:maybe ms/PositiveInt]]
    {root-namespace :root-namespace} :- ::permissions.schema/collection-options]
