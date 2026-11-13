@@ -122,8 +122,9 @@
   [ids]
   (when (seq ids)
     (into {}
-          (comp (map (juxt :id :name)))
-          (api/readable (mcp.db/collections-for-read-check ids)))))
+          (comp (filter mi/can-read?)
+                (map (juxt :id :name)))
+          (t2/hydrate (mcp.db/collections-for-read-check ids) :can_read))))
 
 (defn- add-collection-paths
   "Attach `:collection_path` — ancestor collection names joined with `/`, ending in the

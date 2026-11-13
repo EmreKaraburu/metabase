@@ -286,7 +286,7 @@
 
 (defmethod fill-recent-view-info :card [{:keys [_model model_id timestamp model_object]}]
   (when-let [card (and
-                   (:can_read (t2/hydrate model_object :can_read))
+                   (mi/can-read? model_object)
                    ;; The parent collection exists:
                    (parent-collection-valid? model_object)
                    (ellide-archived model_object))]
@@ -303,14 +303,14 @@
      :entity_id (:entity_id card)
      :visualization_settings (:visualization_settings card)
      :model :card
-     :can_write (:can_write (t2/hydrate card :can_write))
+     :can_write (mi/can-write? card)
      :timestamp (str timestamp)
      :moderated_status (:moderated-status card)
      :parent_collection (fill-parent-coll card)}))
 
 (defmethod fill-recent-view-info :dataset [{:keys [_model model_id timestamp model_object]}]
   (when-let [dataset (and
-                      (:can_read (t2/hydrate model_object :can_read))
+                      (mi/can-read? model_object)
                       ;; If the parent collection no longer exists, there won't be a name.
                       (parent-collection-valid? model_object)
                       (ellide-archived model_object))]
@@ -320,7 +320,7 @@
      :description (:description dataset)
      :model :dataset
      :result_metadata (:result_metadata dataset)
-     :can_write (:can_write (t2/hydrate dataset :can_write))
+     :can_write (mi/can-write? dataset)
      :timestamp (str timestamp)
      ;; another table that doesn't differentiate between card and dataset :cry:
      :moderated_status (:moderated-status dataset)
@@ -328,7 +328,7 @@
 
 (defmethod fill-recent-view-info :metric [{:keys [_model model_id timestamp model_object]}]
   (when-let [metric (and
-                     (:can_read (t2/hydrate model_object :can_read))
+                     (mi/can-read? model_object)
                      (parent-collection-valid? model_object)
                      (ellide-archived model_object))]
     {:id model_id
@@ -337,7 +337,7 @@
      :display (some-> metric :display name)
      :model :metric
      :result_metadata (:result_metadata metric)
-     :can_write (:can_write (t2/hydrate metric :can_write))
+     :can_write (mi/can-write? metric)
      :timestamp (str timestamp)
      :moderated_status (:moderated-status metric)
      :parent_collection (fill-parent-coll metric)}))
@@ -352,14 +352,14 @@
     (activity-feed.db/dashboards-for-recent-views dashboard-ids)))
 
 (defmethod fill-recent-view-info :dashboard [{:keys [_model model_id timestamp model_object]}]
-  (when-let [dashboard (and (:can_read (t2/hydrate model_object :can_read))
+  (when-let [dashboard (and (mi/can-read? model_object)
                             (parent-collection-valid? model_object)
                             (ellide-archived model_object))]
     {:id model_id
      :name (:name dashboard)
      :description (:description dashboard)
      :model :dashboard
-     :can_write (:can_write (t2/hydrate dashboard :can_write))
+     :can_write (mi/can-write? dashboard)
      :timestamp (str timestamp)
      :moderated_status (:moderated-status dashboard)
      :parent_collection (fill-parent-coll dashboard)}))

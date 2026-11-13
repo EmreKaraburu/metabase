@@ -329,7 +329,7 @@
 (defmethod mi/can-create? :perms/use-parent-collection-perms
   [_model m]
   (if-let [collection-id (:collection_id m)]
-    (:can_write (t2/hydrate (api/check-404 (permissions.db/collection collection-id)) :can_write))
+    (mi/can-write? (permissions.db/collection collection-id))
     (mi/can-write? collection.root/root-collection)))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+

@@ -29,7 +29,7 @@
   (let [ids (into #{} (filter int?) ids)]
     (when (seq ids)
       (into {} (for [card  (toolkit.db/cards ids)
-                     :when (:can_read (t2/hydrate card :can_read))]
+                     :when (mi/can-read? card)]
                  [(:id card) card])))))
 
 (defn- normalize-parameters

@@ -27,8 +27,7 @@
    [metabase.users.settings :as users.settings]
    [metabase.util.log :as log]
    [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]
-   [toucan2.core :as t2]))
+   [metabase.util.malli.schema :as ms]))
 
 (set! *warn-on-reflection* true)
 
@@ -79,7 +78,7 @@
   (if (= "user" model)
     (or (= (:id row) api/*current-user-id*)
         (not (perms/sandboxed-or-impersonated-user?)))
-    (:can_read (t2/hydrate row :can_read))))
+    (mi/can-read? row)))
 
 (defn- visible-user-rows
   "The `:model/User` rows among `ids` whose names the current user may see: the mention picker's
@@ -222,7 +221,7 @@
           (let [card (get cards id)]
             (when-not (and card
                            (or (and document-id (= document-id (:document_id card)))
-                               (:can_read (t2/hydrate card :can_read))))
+                               (mi/can-read? card)))
               (common/throw-not-found :model/Card id))))))))
 
 (defn- body-projection

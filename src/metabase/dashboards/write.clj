@@ -427,7 +427,7 @@
   [deep-copy? :- ms/MaybeBooleanValue
    dashcards :- [:sequential :metabase.dashboards.schema/dashboard-card]]
   (let [card->cards (fn [{:keys [card series]}] (into [card] series))
-        readable? (fn [card] (and (mi/model card) (:can_read (t2/hydrate card :can_read))))
+        readable? (fn [card] (and (mi/model card) (mi/can-read? card)))
         card->decision (fn [parent-card card]
                          (cond
                            (or

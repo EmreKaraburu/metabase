@@ -444,28 +444,20 @@
   [_model _k collections]
   (hydrate-can-write collections))
 
-(defn- check-read-keys
-  "Throws unless `collection` was hydrated with `:can_read`."
-  [collection]
-  (api/check-500 (contains? collection :can_read) "No :can_read is hydrated on a Collection."))
-
-(defn- check-write-keys
-  "Throws unless `collection` was hydrated with `:can_write`."
-  [collection]
-  (api/check-500 (contains? collection :can_write) "No :can_write is hydrated on a Collection."))
-
 (defmethod mi/can-read? :model/Collection
   ([collection]
-   (check-read-keys collection)
-   (:can_read collection))
+   (if-some [can-read (:can_read collection)]
+     can-read
+     (:can_read (t2/hydrate collection :can_read))))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
    (:can_read (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_read))))
 
 (defmethod mi/can-write? :model/Collection
   ([collection]
-   (check-write-keys collection)
-   (:can_write collection))
+   (if-some [can-write (:can_write collection)]
+     can-write
+     (:can_write (t2/hydrate collection :can_write))))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
    (:can_write (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_write))))

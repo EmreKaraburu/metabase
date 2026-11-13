@@ -67,7 +67,7 @@
                                        (when (= (keyword filter-option) :mine)
                                          api/*current-user-id*)) <>
     (t2/hydrate <> :creator)
-    (api/readable <>)))
+    (filter mi/can-read? <>)))
 
 ;; TODO (Cam 2025-11-25) please add a response schema to this API endpoint, it makes it easier for our customers to
 ;; use our API + we will need it when we make auto-TypeScript-signature generation happen
@@ -100,7 +100,7 @@
                      (fn [dashcards]
                        (mapv (fn [dashcard]
                                (cond-> dashcard
-                                 (and (:action dashcard) (not (:can_read (t2/hydrate (:action dashcard) :can_read))))
+                                 (and (:action dashcard) (not (mi/can-read? (:action dashcard))))
                                  (dissoc :action)))
                              dashcards))))
 
@@ -210,7 +210,7 @@
   "If CARD is unreadable, replace it with an object containing only its `:id`."
   [card]
   (when card
-    (if (:can_read (t2/hydrate card :can_read))
+    (if (mi/can-read? card)
       card
       (select-keys card [:id]))))
 
@@ -441,7 +441,7 @@
   [deep-copy? :- ms/MaybeBooleanValue
    dashcards :- [:sequential :metabase.dashboards.schema/dashboard-card]]
   (let [card->cards (fn [{:keys [card series]}] (into [card] series))
-        readable? (fn [card] (and (mi/model card) (:can_read (t2/hydrate card :can_read))))
+        readable? (fn [card] (and (mi/model card) (mi/can-read? card)))
         card->decision (fn [parent-card card]
                          (cond
                            (or

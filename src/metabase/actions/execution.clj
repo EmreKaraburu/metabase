@@ -28,8 +28,7 @@
    [metabase.util.log :as log]
    [metabase.util.malli :as mu]
    [metabase.util.malli.schema :as ms]
-   [metabase.workspaces.core :as workspaces]
-   [toucan2.core :as t2]))
+   [metabase.workspaces.core :as workspaces]))
 
 (def ^:private RequestParameters
   "Parameters as passed in from an endpoint, of shape `{<parameter-id> <value>}`."
@@ -43,7 +42,7 @@
 (defn- check-action-read-perms
   "Throws a permissions error unless the current user, when there is one, can read `action`."
   [action]
-  (when (and api/*current-user-id* (not (:can_read (t2/hydrate action :can_read))))
+  (when (and api/*current-user-id* (not (mi/can-read? action)))
     (throw (ex-info (tru "You do not have permissions to run this action.")
                     {:type qp.error-type/missing-required-permissions, :status-code 403}))))
 

@@ -22,8 +22,7 @@
    [metabase.transforms.core :as transforms]
    [metabase.util :as u]
    [metabase.util.log :as log]
-   [metabase.util.malli.registry :as mr]
-   [toucan2.core :as t2]))
+   [metabase.util.malli.registry :as mr]))
 
 (set! *warn-on-reflection* true)
 
@@ -257,14 +256,15 @@
   [archived? results]
   (let [document-ids (->> results (filter #(= "document" (:type %))) (map :id) set)
         id->document (when (seq document-ids)
-                       (->> (api/readable (metabot.db/documents-in-archived-state document-ids archived?))
+                       (->> (metabot.db/documents-in-archived-state document-ids archived?)
+                            (filter mi/can-read?)
                             (u/index-by :id)))]
     (if (seq document-ids)
       (into []
             (keep (fn [result]
                     (if (= "document" (:type result))
                       (when-let [document (get id->document (:id result))]
-                        (assoc result :can_write (boolean (:can_write (t2/hydrate document :can_write)))))
+                        (assoc result :can_write (boolean (mi/can-write? document))))
                       result)))
             results)
       results)))
@@ -504,7 +504,7 @@
   (let [ids       (distinct (map :id refs))
         ;; only surface cards the current user can read (collection perms) — see table-refs->results
         id->card  (when (seq ids)
-                    (u/index-by :id (api/readable (metabot.db/card-search-rows ids))))
+                    (u/index-by :id (filter mi/can-read? (metabot.db/card-search-rows ids))))
         coll-ids  (->> (vals id->card) (keep :collection_id) distinct)
         id->coll  (when (seq coll-ids)
                     (u/index-by :id (metabot.db/collection-summaries coll-ids)))
@@ -535,7 +535,7 @@
     (let [by-type (group-by :type refs)
           fetch   (fn [db-fn ids]
                     (when-let [ids (not-empty (distinct ids))]
-                      (api/readable (db-fn ids))))
+                      (filter mi/can-read? (db-fn ids))))
           rows    (concat (map #(assoc % :type "measure") (fetch metabot.db/measures (map :id (get by-type "measure"))))
                           (map #(assoc % :type "segment") (fetch metabot.db/segments (map :id (get by-type "segment")))))
           tbl-ids (not-empty (distinct (keep :table_id rows)))

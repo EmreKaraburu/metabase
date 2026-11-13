@@ -5,14 +5,13 @@
    [metabase.revisions.db :as revisions.db]
    [metabase.util.i18n :refer [deferred-tru]]
    [metabase.util.log :as log]
-   [metabase.util.match :as match]
-   [toucan2.core :as t2]))
+   [metabase.util.match :as match]))
 
 (defn- readable-name
   [model id]
   (when id
     (when-let [instance (revisions.db/entity model id)]
-      (when (:can_read (t2/hydrate instance :can_read))
+      (when (mi/can-read? instance)
         (:name instance)))))
 
 (defn- match-1 [k v1 v2 identifier]

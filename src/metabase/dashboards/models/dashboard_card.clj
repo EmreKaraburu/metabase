@@ -328,11 +328,10 @@
             model-and-id->info
             (-> (m/index-by (juxt :model :id) (dashboards.db/link-card-info-rows model-and-ids))
                 (update-vals (fn [{model :model :as instance}]
-                               (if (:can_read (t2/hydrate (t2/instance (serialization/link-card-model->toucan-model model)
+                               (if (mi/can-read? (t2/instance (serialization/link-card-model->toucan-model model)
                                                                           (cond-> instance
                                                                             (= model "collection")
-                                                                            (merge (get collection-columns (:id instance)))))
-                                                             :can_read))
+                                                                            (merge (get collection-columns (:id instance))))))
                                  instance
                                  {:restricted true}))))]
         (map (fn [card]

@@ -109,7 +109,7 @@
         (some? (:entity link-card))
         (let [{:keys [model id]} (:entity link-card)
               instance           (dashboard-card/link-card-entity model id)]
-          (when (:can_read (t2/hydrate instance :can_read))
+          (when (mi/can-read? instance)
             (link-card->text-part (assoc link-card :entity instance))))))
     (catch Throwable e
       (log/warn e "Error rendering link card; skipping it")

@@ -24,8 +24,7 @@
    [metabase.util.malli :as mu]
    [metabase.util.malli.registry :as mr]
    [metabase.util.malli.schema :as ms]
-   [metabase.util.performance :as perf]
-   [toucan2.core :as t2]))
+   [metabase.util.performance :as perf]))
 
 ;;; ------------------------------------------------- source=static-list --------------------------------------------------
 
@@ -236,7 +235,7 @@
       :static-list (static-list-values parameter query-string)
       :card        (let [config (:values_source_config parameter)
                          card   (parameters.db/card (:card_id config))]
-                     (when-not (:can_read (t2/hydrate card :can_read))
+                     (when-not (mi/can-read? card)
                        (throw (ex-info "You don't have permissions to do that." {:status-code 403})))
                      (or (when-not (:archived card)
                            (when-let [query (card-query (:id card) (some-> (:dataset_query card) not-empty lib-be/normalize-query))]
@@ -287,7 +286,7 @@
    value                                     :- [:or ms/FieldValue [:sequential ms/FieldValue]]]
   (when-let [label-field (:label_field config)]
     (when-let [card (parameters.db/card (:card_id config))]
-      (when (and (not (:archived card)) (:can_read (t2/hydrate card :can_read)))
+      (when (and (not (:archived card)) (mi/can-read? card))
         (when-let [query (card-query (:id card) (some-> (:dataset_query card) not-empty lib-be/normalize-query))]
           (when (can-get-card-values? query (:value_field config))
             (first (:values (values-from-card* query

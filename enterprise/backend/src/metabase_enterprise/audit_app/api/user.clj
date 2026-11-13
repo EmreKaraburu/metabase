@@ -9,8 +9,7 @@
    [metabase.models.interface :as mi]
    [metabase.users.core :as users]
    [metabase.util :as u]
-   [metabase.util.malli.schema :as ms]
-   [toucan2.core :as t2]))
+   [metabase.util.malli.schema :as ms]))
 
 ;; TODO (Cam 2025-11-25) please add a response schema to this API endpoint, it makes it easier for our customers to
 ;; use our API + we will need it when we make auto-TypeScript-signature generation happen
@@ -25,9 +24,9 @@
         dashboard-overview (audit/memoized-select-audit-entity :model/Dashboard ee-audit/default-dashboard-overview-entity-id)]
     (merge
      {}
-     (when (some-> (audit/default-custom-reports-collection) (t2/hydrate :can_read) mi/can-read?)
+     (when (mi/can-read? (audit/default-custom-reports-collection))
        {(:slug custom-reports) (:id custom-reports)})
-     (when (some-> (audit/default-audit-collection) (t2/hydrate :can_read) mi/can-read?)
+     (when (mi/can-read? (audit/default-audit-collection))
        {(u/slugify (:name question-overview)) (:id question-overview)
         (u/slugify (:name dashboard-overview)) (:id dashboard-overview)}))))
 
