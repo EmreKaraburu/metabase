@@ -2051,7 +2051,6 @@
    :api  #{metabase.permissions.core
            metabase.permissions.init
            metabase.permissions.metric
-           metabase.permissions.path
            metabase.permissions.schema}
    :uses #{api
            app-db
