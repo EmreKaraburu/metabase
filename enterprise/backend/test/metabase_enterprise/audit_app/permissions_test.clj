@@ -5,7 +5,6 @@
    [clojure.test :refer :all]
    [metabase-enterprise.audit-app.audit-test :as audit-test]
    [metabase-enterprise.audit-app.permissions :as audit-app.permissions]
-   [metabase.api.common :as api]
    [metabase.audit-app.core :as audit]
    [metabase.core.core :as mbc]
    [metabase.lib-be.metadata.jvm :as lib.metadata.jvm]

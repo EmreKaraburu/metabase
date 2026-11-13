@@ -189,15 +189,15 @@
     (for [card cards]
       (when card
         (vary-meta card assoc :can-read?
-               (boolean
-                (and (contains? readable (:collection_id card))
-                     (let [id (document-id card)]
-                       (or (nil? id)
-                           (when-let [document (get documents id)]
-                             (if-let [snapshots (summary-card-snapshots card document)]
-                               (and (contains? @summary-readable (:collection_id document))
-                                    (every? cached-result/viewer-can-view-cached-result? snapshots))
-                               (mi/can-read? document))))))))))))
+                   (boolean
+                    (and (contains? readable (:collection_id card))
+                         (let [id (document-id card)]
+                           (or (nil? id)
+                               (when-let [document (get documents id)]
+                                 (if-let [snapshots (summary-card-snapshots card document)]
+                                   (and (contains? @summary-readable (:collection_id document))
+                                        (every? cached-result/viewer-can-view-cached-result? snapshots))
+                                   (mi/can-read? document))))))))))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Card :can-write?]
   "Whether the current user writes each of `cards`: its Collection's content, and, for a Card of a Document, the
@@ -211,13 +211,13 @@
     (for [card cards]
       (when card
         (vary-meta card assoc :can-write?
-               (boolean
-                (and (contains? writable (:collection_id card))
-                     (let [id (document-id card)]
-                       (or (nil? id)
-                           (when-let [document (get documents id)]
-                             (and (nil? (:exploration_id document))
-                                  (mi/can-write? document))))))))))))
+                   (boolean
+                    (and (contains? writable (:collection_id card))
+                         (let [id (document-id card)]
+                           (or (nil? id)
+                               (when-let [document (get documents id)]
+                                 (and (nil? (:exploration_id document))
+                                      (mi/can-write? document))))))))))))
 
 (defmethod mi/can-read? :model/Card
   ([card]

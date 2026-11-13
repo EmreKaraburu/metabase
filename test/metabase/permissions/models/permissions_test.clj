@@ -1,7 +1,6 @@
 (ns metabase.permissions.models.permissions-test
   (:require
    [clojure.test :refer :all]
-   [metabase.api.common :as api]
    [metabase.audit-app.impl :as audit.impl]
    [metabase.collections.models.collection :as collection]
    [metabase.models.interface :as mi]

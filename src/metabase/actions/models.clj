@@ -327,8 +327,8 @@
     (for [action actions]
       (when action
         (vary-meta action assoc :can-read? (boolean (if (model-less-root? action)
-                                           @root-readable
-                                           (contains? readable (:collection_id action)))))))))
+                                                      @root-readable
+                                                      (contains? readable (:collection_id action)))))))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Action :can-write?]
   "Whether the current user writes each of `actions`: a superuser, writing its Collection's content, or, for an Action
@@ -348,9 +348,9 @@
     (for [action actions]
       (when action
         (vary-meta action assoc :can-write? (boolean (and superuser?
-                                               (if (model-less-root? action)
-                                                 @root-writable
-                                                 (contains? writable (:collection_id action))))))))))
+                                                          (if (model-less-root? action)
+                                                            @root-writable
+                                                            (contains? writable (:collection_id action))))))))))
 
 (defmethod mi/can-read? :model/Action
   ([action]

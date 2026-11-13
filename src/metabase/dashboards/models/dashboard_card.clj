@@ -12,7 +12,6 @@
    [metabase.queries.schema :as queries.schema]
    [metabase.remote-sync.core :as remote-sync]
    [metabase.serialization.core :as serialization]
-   [metabase.util :as u]
    [metabase.util.malli :as mu]
    [metabase.util.malli.schema :as ms]
    [methodical.core :as methodical]

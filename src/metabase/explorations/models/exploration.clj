@@ -61,7 +61,7 @@
                                                              {:root-namespace nil})]
     (for [exploration explorations]
       (when exploration
-        (vary-meta exploration assoc :can-read? (boolean (and (contains? readable (:collection_id exploration)))))))))
+        (vary-meta exploration assoc :can-read? (contains? readable (:collection_id exploration)))))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Exploration :can-write?]
   "Whether the current user writes each of `explorations`, as the content of its Collection."
@@ -71,7 +71,7 @@
                                                              {:root-namespace nil})]
     (for [exploration explorations]
       (when exploration
-        (vary-meta exploration assoc :can-write? (boolean (and (contains? writable (:collection_id exploration)))))))))
+        (vary-meta exploration assoc :can-write? (contains? writable (:collection_id exploration)))))))
 
 (defmethod mi/can-read? :model/Exploration
   ([exploration]

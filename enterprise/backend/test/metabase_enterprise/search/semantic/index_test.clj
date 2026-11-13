@@ -16,7 +16,6 @@
    [metabase.analytics-interface.core :as analytics]
    [metabase.collections.models.collection :as collection]
    [metabase.permissions.core :as perms]
-   [metabase.search.core :as search]
    [metabase.test :as mt]
    [metabase.util :as u]
    [next.jdbc :as jdbc])

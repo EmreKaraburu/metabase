@@ -34,7 +34,7 @@
                                                              {:root-namespace nil})]
     (for [timeline timelines]
       (when timeline
-        (vary-meta timeline assoc :can-read? (boolean (and (contains? readable (:collection_id timeline)))))))))
+        (vary-meta timeline assoc :can-read? (contains? readable (:collection_id timeline)))))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Timeline :can-write?]
   "Whether the current user writes each of `timelines`, as the content of its Collection."
@@ -44,7 +44,7 @@
                                                              {:root-namespace nil})]
     (for [timeline timelines]
       (when timeline
-        (vary-meta timeline assoc :can-write? (boolean (and (contains? writable (:collection_id timeline)))))))))
+        (vary-meta timeline assoc :can-write? (contains? writable (:collection_id timeline)))))))
 
 (defmethod mi/can-read? :model/Timeline
   ([timeline]
