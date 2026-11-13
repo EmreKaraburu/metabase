@@ -1499,15 +1499,17 @@
                    :model/Table                      {table-3 :id}  {:db_id db-2}]
       (let [db-ids    [db-1 db-2]
             table-ids {table-1 db-1, table-2 db-1, inactive db-1, table-3 db-2}
-            user-info {:user-id user-id :is-superuser? false}
+            user-info {:user-id user-id :is-superuser? false :is-data-analyst? false}
             ;; every value but the least permissive, which a user without rows also has
             check     (fn []
                         (doseq [[perm-type db-values] table-level-values
                                 level                 (butlast (first db-values))]
                           (testing (str perm-type " " level)
-                            (is (= (into #{} (filter #(data-perms/user-has-permission-for-table?
-                                                       user-id perm-type level (table-ids %) %))
-                                         (keys table-ids))
+                            (is (= (into #{}
+                                         (keep (fn [[table-id value]]
+                                                 (when (data-perms/at-least-as-permissive? perm-type value level)
+                                                   table-id)))
+                                         (data-perms/table-permissions-for-user user-info perm-type table-ids))
                                    (set (t2/select-pks-set :model/Table
                                                            {:where [:and [:in :id (keys table-ids)]
                                                                     (data-perms/visible-tables-filter-clause
