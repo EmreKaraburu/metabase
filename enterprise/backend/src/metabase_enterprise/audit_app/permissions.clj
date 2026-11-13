@@ -53,7 +53,7 @@
   ;; The query goes under `:query`, because its own `:type` key would take the place of the error type.
   ;; Check if the user has access to the analytics collection, since this should be coupled with access to the
   ;; audit database in general.
-  (when-not (some-> (audit/default-audit-collection) (t2/hydrate :can_read) mi/can-read?)
+  (when-not (some-> (audit/default-audit-collection) (t2/hydrate :can-read?) mi/can-read?)
     (throw (query-perms/perms-exception (tru "You do not have access to the audit database") nil {:query outer-query})))
   ;; query->source-table-ids returns a set of table IDs or a map with the key `:native?`
   (when (= query-type :native)

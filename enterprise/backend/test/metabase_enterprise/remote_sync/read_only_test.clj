@@ -106,12 +106,12 @@
     (mt/with-current-user (mt/user->id :crowberto)
       (testing "on read-only instance, archived content that unarchiving would sync can't be written"
         (remote-sync.tu/with-remote-sync [url :read-only]
-          (is (false? (mi/can-write? (t2/hydrate archived :can_write))))
-          (is (false? (mi/can-write? (t2/hydrate card :can_write))))
-          (is (false? (mi/can-write? (t2/hydrate snippet :can_write))))
+          (is (false? (mi/can-write? (t2/hydrate archived :can-write?))))
+          (is (false? (mi/can-write? (t2/hydrate card :can-write?))))
+          (is (false? (mi/can-write? (t2/hydrate snippet :can-write?))))
           (is (false? (mi/can-update? snippet {:archived false})))))
       (testing "on read-write instance, it can"
         (remote-sync.tu/with-remote-sync [url :read-write]
-          (is (true? (mi/can-write? (t2/hydrate archived :can_write))))
-          (is (true? (mi/can-write? (t2/hydrate card :can_write))))
+          (is (true? (mi/can-write? (t2/hydrate archived :can-write?))))
+          (is (true? (mi/can-write? (t2/hydrate card :can-write?))))
           (is (true? (mi/can-update? snippet {:archived false}))))))))

@@ -703,23 +703,32 @@
   ([model pk]
    (can-read? model pk)))
 
-(methodical/defmethod t2.hydrate/needs-hydration? [:default :can_read]
-  "Whether `instance` lacks the answer `:can_read` hydration keeps in its metadata under `:can-read?`, out of the row."
+(methodical/defmethod t2.hydrate/needs-hydration? [:default :can-read?]
+  "Whether `instance` lacks the answer `:can-read?` hydration keeps in its metadata, out of the row."
   [_model _k instance]
   (nil? (:can-read? (meta instance))))
 
-(methodical/defmethod t2.hydrate/simple-hydrate [:default :can_read]
-  "Keep whether the current user can read `instance` in its metadata under `:can-read?`."
+(methodical/defmethod t2.hydrate/needs-hydration? [:default :can-write?]
+  "Whether `instance` lacks the answer `:can-write?` hydration keeps in its metadata, out of the row."
   [_model _k instance]
-  (vary-meta instance assoc :can-read? (boolean (can-read? instance))))
+  (nil? (:can-write? (meta instance))))
 
-;; only reached through the :can_write hydration key, never called by name
-#_{:clj-kondo/ignore [:unused-private-var]}
-(define-simple-hydration-method ^:private hydrate-can-write
-  :can_write
-  "Hydration method for `:can_write`."
-  [instance]
-  (can-write? instance))
+(methodical/defmethod t2.hydrate/simple-hydrate [:default :can-read?]
+  "Leaves `instance` as is: a model without `:can-read?` hydration of its own answers in [[can-read?]] itself."
+  [_model _k instance]
+  instance)
+
+(methodical/defmethod t2.hydrate/simple-hydrate [:default :can-write?]
+  "Leaves `instance` as is: a model without `:can-write?` hydration of its own answers in [[can-write?]] itself."
+  [_model _k instance]
+  instance)
+
+(methodical/defmethod t2.hydrate/batched-hydrate [:default :can_write]
+  "Sets `:can_write` on each of `instances` to what [[can-write?]] answers, with `:can-write?` hydrated for them together."
+  [_model _k instances]
+  (for [instance (t2/hydrate instances :can-write?)]
+    (when instance
+      (assoc instance :can_write (can-write? instance)))))
 
 (methodical/defmethod t2/simple-hydrate [:default :can_query]
   "Hydration method for `:can_query`. Returns whether the current user can execute queries against this object."

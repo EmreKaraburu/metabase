@@ -90,7 +90,7 @@
   (api/check-superuser)
   (into [] (comp (filter mi/can-read?)
                  (map present-workspace))
-        (t2/hydrate (ws/list-workspaces) :can_read)))
+        (t2/hydrate (ws/list-workspaces) :can-read?)))
 
 (api.macros/defendpoint :get "/:id" :- WorkspaceResponse
   "Get a single Workspace by id."

@@ -53,7 +53,7 @@
   have multiple participants (e.g. multiple users in a shared Slack thread)."
   [conversation-id]
   (when-let [conversation (metabot.db/conversation conversation-id)]
-    (api/check-403 (mi/can-read? (t2/hydrate conversation :can_read)))))
+    (api/check-403 (mi/can-read? (t2/hydrate conversation :can-read?)))))
 
 (defn- make-out-of-sync-fn
   [conversation-id parent-message-id retry-message-id]

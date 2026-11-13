@@ -22,7 +22,7 @@
 (defn- remove-details-if-needed
   "Remove the details field if the current user does not have write permissions for the channel."
   [channel]
-  (if (mi/can-write? (t2/hydrate channel :can_write))
+  (if (mi/can-write? (t2/hydrate channel :can-write?))
     channel
     (dissoc channel :details)))
 
@@ -39,7 +39,7 @@
   (->> (if include_inactive
          (channel.db/channels)
          (channel.db/active-channels))
-       (#(t2/hydrate % :can_read))
+       (#(t2/hydrate % :can-read?))
        (filter mi/can-read?)
        (map remove-details-if-needed)))
 

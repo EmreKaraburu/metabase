@@ -34,7 +34,7 @@
     (map #(update % :schema str) tables)
     (do (perms/prime-table-perms-cache {:db-ids    (into #{} (keep :db_id) tables)
                                         :table-ids (into #{} (map :id) tables)}) tables)
-    (filter mi/can-read? (t2/hydrate tables :can_read))
+    (filter mi/can-read? (t2/hydrate tables :can-read?))
     (sort-by :name tables) ;; Re-sort because we concat'ed data
     (vec tables)))
 

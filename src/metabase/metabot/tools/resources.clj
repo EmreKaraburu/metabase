@@ -475,7 +475,7 @@
     :location          location
     :authority_level   authority_level
     :is_personal       (boolean personal_owner_id)
-    :can_write         (boolean (mi/can-write? (t2/hydrate coll :can_write)))
+    :can_write         (boolean (mi/can-write? (t2/hydrate coll :can-write?)))
     :description       description
     :uri               (llm-shape/metabase-uri :collection id)}))
 
@@ -513,7 +513,7 @@
    :id            id
    :name          name
    :collection_id collection_id
-   :can_write     (boolean (mi/can-write? (t2/hydrate dashboard :can_write)))
+   :can_write     (boolean (mi/can-write? (t2/hydrate dashboard :can-write?)))
    :description   description
    :uri           (llm-shape/metabase-uri :dashboard id)})
 
@@ -523,7 +523,7 @@
    :id            id
    :name          name
    :collection_id collection_id
-   :can_write     (boolean (mi/can-write? (t2/hydrate document :can_write)))
+   :can_write     (boolean (mi/can-write? (t2/hydrate document :can-write?)))
    :uri           (llm-shape/metabase-uri :document id)})
 
 (defn- present-transform
@@ -573,7 +573,7 @@
   (let [all (metabot.db/non-audit-databases)
         _   (perms/prime-database-perms-cache {:db-ids (into #{} (map :id) all)})
         dbs (->> all
-                 (#(t2/hydrate % :can_read))
+                 (#(t2/hydrate % :can-read?))
                  (filter mi/can-read?)
                  (mapv present-database))]
     (list-result :databases dbs query-params)))
@@ -582,7 +582,7 @@
   "metabase://collections (root only) and metabase://collections?tree=true (flat list of all)."
   [{:keys [tree] :as query-params}]
   (let [tree?    (= "true" tree)
-        colls    (t2/hydrate (filterv mi/can-read? (t2/hydrate (metabot.db/navigable-collections tree?) :can_read)) :can_write)
+        colls    (t2/hydrate (filterv mi/can-read? (t2/hydrate (metabot.db/navigable-collections tree?) :can-read?)) :can_write)
         ;; For tree mode, compute path names by chaining ancestor names.
         id->name (when tree? (u/index-by :id :name colls))
         ancestors (fn [{:keys [location]}]
@@ -633,7 +633,7 @@
         _      (warehouses/get-database db-id)
         _      (perms/prime-table-perms-cache {:db-ids #{db-id}})
         tables (->> (metabot.db/active-tables-for-database db-id)
-                    (#(t2/hydrate % :can_read))
+                    (#(t2/hydrate % :can-read?))
                     (filter mi/can-read?)
                     (mapv present-table))]
     (list-result :database-tables tables query-params)))
@@ -641,7 +641,7 @@
 (defn- fetch-database-models [id-str query-params]
   (let [db-id  (parse-long id-str)
         _      (warehouses/get-database db-id)
-        models (->> (filterv mi/can-read? (t2/hydrate (metabot.db/models-for-database db-id) :can_read))
+        models (->> (filterv mi/can-read? (t2/hydrate (metabot.db/models-for-database db-id) :can-read?))
                     (mapv present-card))]
     (list-result :database-models models query-params)))
 
@@ -650,7 +650,7 @@
    Readable first, then curated, so the listing reveals nothing about a Table the user cannot read."
   [db-id]
   (let [_       (perms/prime-table-perms-cache {:db-ids #{db-id}})
-        tables  (filter mi/can-read? (t2/hydrate (metabot.db/active-tables-for-database db-id) :can_read))
+        tables  (filter mi/can-read? (t2/hydrate (metabot.db/active-tables-for-database db-id) :can-read?))
         curated (curation/curated-ids (map (fn [{:keys [id]}] ["table" id]) tables))]
     (into #{}
           (comp (filter (fn [{:keys [id]}] (contains? curated ["table" id])))
@@ -677,7 +677,7 @@
         _      (when-not (seq rows)
                  (missing-schema! {:database-id db-id :schema schema-name}))
         tables (->> rows
-                    (#(t2/hydrate % :can_read))
+                    (#(t2/hydrate % :can-read?))
                     (filter mi/can-read?)
                     (mapv present-table))]
     (list-result :database-schema-tables tables query-params)))
@@ -697,14 +697,14 @@
   (documents/with-content-gate-cache
     (let [coll-id        (parse-long id-str)
           coll           (when-not (= id-str "root") (readable-collection id-str))
-          cards          (->> (filterv mi/can-read? (t2/hydrate (metabot.db/cards-in-collection coll-id) :can_read)))
-          dashboards     (->> (filterv mi/can-read? (t2/hydrate (metabot.db/dashboards-in-collection coll-id) :can_read)))
+          cards          (->> (filterv mi/can-read? (t2/hydrate (metabot.db/cards-in-collection coll-id) :can-read?)))
+          dashboards     (->> (filterv mi/can-read? (t2/hydrate (metabot.db/dashboards-in-collection coll-id) :can-read?)))
           ;; Exploration Summary documents are only through their exploration — so they stay out of this listing
-          documents      (->> (filterv mi/can-read? (t2/hydrate (metabot.db/documents-in-collection coll-id) :can_read)))
+          documents      (->> (filterv mi/can-read? (t2/hydrate (metabot.db/documents-in-collection coll-id) :can-read?)))
           subcollections (t2/hydrate (filterv mi/can-read? (t2/hydrate (if (= id-str "root")
                                                      (metabot.db/navigable-collections false)
                                                      (metabot.db/unarchived-collections-at-location
-                                                      (collection/children-location coll))) :can_read))
+                                                      (collection/children-location coll))) :can-read?))
                                      :can_write)
           items          (concat (map present-collection subcollections)
                                  (map present-card cards)
@@ -717,7 +717,7 @@
         subs    (->> (t2/hydrate (filterv mi/can-read? (t2/hydrate (if (= id-str "root")
                                                  (metabot.db/navigable-collections false)
                                                  (metabot.db/unarchived-collections-at-location
-                                                  (collection/children-location coll))) :can_read))
+                                                  (collection/children-location coll))) :can-read?))
                                  :can_write)
                      (mapv present-collection))]
     (list-result :collection-subcollections subs query-params)))
@@ -839,7 +839,7 @@
   (let [table-id   (parse-long id-str)
         table      (active-table-resource table-id)
         db-id      (:db_id table)
-        cards      (->> (filterv mi/can-read? (t2/hydrate (metabot.db/cards-for-table table-id) :can_read))
+        cards      (->> (filterv mi/can-read? (t2/hydrate (metabot.db/cards-for-table table-id) :can-read?))
                         (mapv present-card))
         ;; SQL-narrow transforms by source_database_id (a transform can only reference
         ;; tables in its source DB). Pull `:source` in the same select to extract source
@@ -848,7 +848,7 @@
         transforms (when db-id
                      (->> (metabot.db/transforms-for-source-database db-id)
                           (filter (fn [t] (some #{table-id} (transform-source-table-ids t))))
-                          (#(t2/hydrate % :can_read))
+                          (#(t2/hydrate % :can-read?))
                           (filter mi/can-read?)
                           (mapv present-transform)))]
     (list-result :table-derived (concat cards transforms) query-params)))
@@ -935,7 +935,7 @@
         source-table-ids (transform-source-table-ids transform)
         source-tables    (when (seq source-table-ids)
                            (->> (metabot.db/table-summaries (set source-table-ids))
-                                (#(t2/hydrate % :can_read))
+                                (#(t2/hydrate % :can-read?))
                                 (filter mi/can-read?)
                                 (mapv present-table)))
         db-id            (:source_database_id transform)
@@ -953,7 +953,7 @@
         ;; tables are readable). Gate it here so users who can read the transform definition
         ;; but lack perms on the target database don't see the target's name/schema.
         target-table (when-let [tt (:table transform)]
-                       (when (mi/can-read? (t2/hydrate tt :can_read)) tt))
+                       (when (mi/can-read? (t2/hydrate tt :can-read?)) tt))
         db-id        (:target_db_id transform)
         items        (cond-> []
                        db-id        (conj {:type "database"
@@ -1013,7 +1013,7 @@
         dashcards    (metabot.db/dashcards dashboard-id)
         card-ids     (into #{} (keep :card_id) dashcards)
         readable     (when (seq card-ids)
-                       (->> (filterv mi/can-read? (t2/hydrate (metabot.db/unarchived-card-summaries card-ids) :can_read))
+                       (->> (filterv mi/can-read? (t2/hydrate (metabot.db/unarchived-card-summaries card-ids) :can-read?))
                             (u/index-by :id)))
         ;; An action button's uri points at its backing model, which [[list-result]]'s curation filter can't see
         ;; through, so under [[shared/curated-only?]] only curated models keep their uri.

@@ -332,7 +332,7 @@
                                                                           (cond-> instance
                                                                             (= model "collection")
                                                                             (merge (get collection-columns (:id instance)))))
-                                                             :can_read))
+                                                             :can-read?))
                                  instance
                                  {:restricted true}))))]
         (map (fn [card]

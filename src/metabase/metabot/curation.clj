@@ -444,7 +444,7 @@
               ("card" "metric") (metabot.db/card id)
               "dashboard"       (metabot.db/dashboard id)
               nil)]
-    (when (some-> row (t2/hydrate :can_read) mi/can-read?)
+    (when (some-> row (t2/hydrate :can-read?) mi/can-read?)
       (check-curated-subject! label subject))))
 
 (defn- without-native-refs

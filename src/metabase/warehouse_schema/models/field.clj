@@ -188,9 +188,9 @@
 (defmethod mi/can-read? :model/Field
   ;; Field permissions delegate to the parent Table. User can read this field if they can read its table.
   ([instance]
-   (mi/can-read? (t2/hydrate (field->table instance) :can_read)))
+   (mi/can-read? (t2/hydrate (field->table instance) :can-read?)))
   ([_model pk]
-   (mi/can-read? (t2/hydrate (warehouse-schema.db/field pk) :can_read))))
+   (mi/can-read? (t2/hydrate (warehouse-schema.db/field pk) :can-read?))))
 
 (defmethod mi/can-query? :model/Field
   ;; Field permissions delegate to the parent Table. User can query this field if they can query its table.
@@ -213,7 +213,7 @@
   ([instance]
    (current-user-can-write-field? instance))
   ([_model pk]
-   (mi/can-write? (t2/hydrate (warehouse-schema.db/field pk) :can_write))))
+   (mi/can-write? (t2/hydrate (warehouse-schema.db/field pk) :can-write?))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Field :can_write]
   "Batched hydration for :can_write on fields, hydrating their tables first."
@@ -341,7 +341,7 @@
     (perms/prime-table-perms-cache {:db-ids    (into #{} (keep :db_id) tables)
                                     :table-ids (into #{} (keep :id) tables)})
     (for [field fields
-          :when (mi/can-read? (t2/hydrate field :can_read))]
+          :when (mi/can-read? (t2/hydrate field :can-read?))]
       (dissoc field :table))))
 
 (mi/define-batched-hydration-method with-targets

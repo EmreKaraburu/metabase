@@ -131,14 +131,14 @@
    (and (mi/current-user-has-full-permissions? :read instance)
         (content-visible? instance)))
   ([_model pk]
-   (mi/can-read? (t2/hydrate (documents.db/document pk) :can_read))))
+   (mi/can-read? (t2/hydrate (documents.db/document pk) :can-read?))))
 
 (defmethod mi/can-write? :model/Document
   ([instance]
    (and (mi/current-user-has-full-permissions? :write instance)
         (content-visible? instance)))
   ([_model pk]
-   (mi/can-write? (t2/hydrate (documents.db/document pk) :can_write))))
+   (mi/can-write? (t2/hydrate (documents.db/document pk) :can-write?))))
 
 (def DocumentName
   "Validations for the name of a document"

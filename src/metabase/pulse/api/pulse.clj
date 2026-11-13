@@ -69,8 +69,8 @@
                                                                  :dashboard-id dashboard-id
                                                                  :user-id      (when creator-or-recipient api/*current-user-id*)})
                                   (#(if creator-or-recipient
-                                       (filter mi/can-read? (t2/hydrate % :can_read))
-                                       (filter mi/can-write? (t2/hydrate % :can_write))))
+                                       (filter mi/can-read? (t2/hydrate % :can-read?))
+                                       (filter mi/can-write? (t2/hydrate % :can-write?))))
                                   models.pulse/maybe-filter-pulses-recipients)
         pulses               (if creator-or-recipient
                                (map models.pulse/maybe-strip-sensitive-metadata pulses)
@@ -228,7 +228,7 @@
   [{:keys [id]} :- [:map {:closed true}
                     [:id ms/PositiveInt]]]
   (api/let-404 [pulse (models.pulse/retrieve-pulse id)]
-    (api/check-403 (mi/can-read? (t2/hydrate pulse :can_read)))
+    (api/check-403 (mi/can-read? (t2/hydrate pulse :can-read?)))
     (-> pulse
         models.pulse/maybe-filter-pulse-recipients
         models.pulse/maybe-strip-sensitive-metadata

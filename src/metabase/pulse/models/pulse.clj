@@ -201,7 +201,7 @@
    (cond
      (some? collection-id) (mi/can-write? :model/Collection collection-id)
      (some? dashboard-id)  true
-     :else                 (mi/can-write? (t2/hydrate collection/root-collection :can_write)))
+     :else                 (mi/can-write? (t2/hydrate collection/root-collection :can-write?)))
    ;; prohibit creating dashboard subs if the the user doesn't have at least read access for the dashboard
    (or (nil? dashboard-id) (mi/can-read? :model/Dashboard dashboard-id))))
 

@@ -596,7 +596,7 @@
       (data-perms/set-database-permission! pg db-id :perms/create-queries :query-builder)
       (data-perms/set-table-permission! pg table-id :perms/view-data :unrestricted)
       (mt/with-test-user :rasta
-        (is (true? (mi/can-read? (t2/hydrate (t2/select-one :model/Table :id table-id) :can_read))))))))
+        (is (true? (mi/can-read? (t2/hydrate (t2/select-one :model/Table :id table-id) :can-read?))))))))
 
 (deftest table-can-read?-with-view-data-permission-test
   (testing "User with view-data and create-queries permission can read table"
@@ -609,7 +609,7 @@
       (data-perms/set-database-permission! pg db-id :perms/create-queries :no)
       (data-perms/set-table-permission! pg table-id :perms/view-data :unrestricted)
       (mt/with-test-user :rasta
-        (is (false? (boolean (mi/can-read? (t2/hydrate (t2/select-one :model/Table :id table-id) :can_read)))))))))
+        (is (false? (boolean (mi/can-read? (t2/hydrate (t2/select-one :model/Table :id table-id) :can-read?)))))))))
 
 (deftest table-can-read?-with-manage-table-metadata-permission-test
   (testing "User with manage-table-metadata permission can read table"
@@ -622,7 +622,7 @@
       (data-perms/set-database-permission! pg db-id :perms/create-queries :no)
       (data-perms/set-table-permission! pg table-id :perms/manage-table-metadata :yes)
       (mt/with-test-user :rasta
-        (is (true? (mi/can-read? (t2/hydrate (t2/select-one :model/Table :id table-id) :can_read))))))))
+        (is (true? (mi/can-read? (t2/hydrate (t2/select-one :model/Table :id table-id) :can-read?))))))))
 
 (deftest table-can-read?-without-permissions-test
   (testing "User with neither permission cannot read table"
@@ -634,7 +634,7 @@
       (data-perms/set-database-permission! pg db-id :perms/view-data :blocked)
       (data-perms/set-database-permission! pg db-id :perms/create-queries :no)
       (mt/with-test-user :rasta
-        (is (false? (mi/can-read? (t2/hydrate (t2/select-one :model/Table :id table-id) :can_read))))))))
+        (is (false? (mi/can-read? (t2/hydrate (t2/select-one :model/Table :id table-id) :can-read?))))))))
 
 ;;; ---------------------------------------- can-query? permission tests ----------------------------------------
 

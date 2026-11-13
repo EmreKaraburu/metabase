@@ -67,7 +67,7 @@
   [card-ids]
   (when (seq card-ids)
     (->> (llm.db/unarchived-cards card-ids)
-         (#(t2/hydrate % :can_read))
+         (#(t2/hydrate % :can-read?))
          (filter mi/can-read?)
          (map :id)
          set)))

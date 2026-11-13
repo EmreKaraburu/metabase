@@ -192,11 +192,11 @@
             (testing "read-only remote sync blocks writes to the snippet folder"
               (mt/with-temporary-setting-values [remote-sync-url  "https://github.com/test/repo.git"
                                                  remote-sync-type :read-only]
-                (is (false? (mi/can-write? (t2/hydrate (t2/select-one :model/Collection :id (:id folder)) :can_write))))))
+                (is (false? (mi/can-write? (t2/hydrate (t2/select-one :model/Collection :id (:id folder)) :can-write?))))))
             (testing "read-write remote sync allows writes to the snippet folder"
               (mt/with-temporary-setting-values [remote-sync-url  "https://github.com/test/repo.git"
                                                  remote-sync-type :read-write]
-                (is (true? (mi/can-write? (t2/hydrate (t2/select-one :model/Collection :id (:id folder)) :can_write))))))))))))
+                (is (true? (mi/can-write? (t2/hydrate (t2/select-one :model/Collection :id (:id folder)) :can-write?))))))))))))
 
 (deftest ee-disabled-snippets-graph-test
   (testing "GET /api/collection/root/items?namespace=snippets"

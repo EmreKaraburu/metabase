@@ -25,9 +25,9 @@
         dashboard-overview (audit/memoized-select-audit-entity :model/Dashboard ee-audit/default-dashboard-overview-entity-id)]
     (merge
      {}
-     (when (some-> (audit/default-custom-reports-collection) (t2/hydrate :can_read) mi/can-read?)
+     (when (some-> (audit/default-custom-reports-collection) (t2/hydrate :can-read?) mi/can-read?)
        {(:slug custom-reports) (:id custom-reports)})
-     (when (some-> (audit/default-audit-collection) (t2/hydrate :can_read) mi/can-read?)
+     (when (some-> (audit/default-audit-collection) (t2/hydrate :can-read?) mi/can-read?)
        {(u/slugify (:name question-overview)) (:id question-overview)
         (u/slugify (:name dashboard-overview)) (:id dashboard-overview)}))))
 

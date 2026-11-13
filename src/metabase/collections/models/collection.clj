@@ -337,7 +337,7 @@
     (= id (:id (audit/default-audit-collection)))))
 
 (defn- check-can-read-keys
-  "Throws unless `collection` has the columns its `:can_read` hydration reads."
+  "Throws unless `collection` has the columns its `:can-read?` hydration reads."
   [collection]
   (api/check-500 (some? (:id collection)) "No :id is set for a Collection.")
   (api/check-500 (contains? collection :type) "No :type is set for a Collection.")
@@ -412,9 +412,9 @@
                                  (perms/collection-permission-at-least? (get permissions id) :read))))))))))
 
 (defn- hydrate-can-write
-  "Sets `:can_write` on each of `collections`, whether the current user writes it: not the audit Collection, the trash
-  or anything in it, with write permission or open to everyone, and not kept read-only by remote sync. A root
-  Collection among them answers for itself."
+  "Keeps in the metadata of each of `collections`, under `:can-write?`, whether the current user writes it: not the
+  audit Collection, the trash or anything in it, with write permission or open to everyone, and not kept read-only by
+  remote sync. A root Collection among them answers for itself."
   [collections]
   (let [rows        (into [] (remove #(or (nil? %) (collection.root/is-root-collection? %))) collections)
         _           (run! check-can-write-keys rows)
@@ -425,40 +425,40 @@
         nil
 
         (collection.root/is-root-collection? collection)
-        (assoc collection :can_write (boolean (mi/can-write? collection)))
+        (vary-meta collection assoc :can-write? (boolean (mi/can-write? collection)))
 
         :else
-        (assoc collection :can_write (boolean
-                                      (and (not (default-audit-collection? collection))
-                                           (not (is-trash-or-descendant? collection))
-                                           (or (collection.root/unrestricted-snippets? collection)
-                                               (perms/collection-permission-at-least? (get permissions id)
-                                                                                      :read-and-write))
-                                           (remote-sync-writable? collection))))))))
+        (vary-meta collection assoc :can-write?
+                   (boolean
+                    (and (not (default-audit-collection? collection))
+                         (not (is-trash-or-descendant? collection))
+                         (or (collection.root/unrestricted-snippets? collection)
+                             (perms/collection-permission-at-least? (get permissions id) :read-and-write))
+                         (remote-sync-writable? collection))))))))
 
-(methodical/defmethod t2/batched-hydrate [:model/Collection :can_read]
+(methodical/defmethod t2/batched-hydrate [:model/Collection :can-read?]
   [_model _k collections]
   (hydrate-can-read collections))
 
-(methodical/defmethod t2/batched-hydrate [:model/Collection :can_write]
+(methodical/defmethod t2/batched-hydrate [:model/Collection :can-write?]
   [_model _k collections]
   (hydrate-can-write collections))
 
 (defmethod mi/can-read? :model/Collection
   ([collection]
-   (api/check-500 (some? (:can-read? (meta collection))) "No :can_read is hydrated on a Collection.")
+   (api/check-500 (some? (:can-read? (meta collection))) "No :can-read? is hydrated on a Collection.")
    (:can-read? (meta collection)))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
-   (mi/can-read? (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_read))))
+   (mi/can-read? (t2/hydrate (api/check-404 (collections.db/collection pk)) :can-read?))))
 
 (defmethod mi/can-write? :model/Collection
   ([collection]
-   (api/check-500 (some? (:can_write collection)) "No :can_write is hydrated on a Collection.")
-   (:can_write collection))
+   (api/check-500 (some? (:can-write? (meta collection))) "No :can-write? is hydrated on a Collection.")
+   (:can-write? (meta collection)))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
-   (:can_write (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_write))))
+   (mi/can-write? (t2/hydrate (api/check-404 (collections.db/collection pk)) :can-write?))))
 
 (defn- root-collection-permission-at-least?
   "Whether the current user has `permission` or more on `root`, a root Collection, which is open to everyone in the
@@ -1283,7 +1283,7 @@
 
 (defn- effective-ancestors*
   "Given a collection, return the effective ancestors of that collection, from `collection-id->collection`, whose
-  Collections are hydrated with `:can_read` and `:can_write`, each ancestor keeping its `:can_write`."
+  Collections are hydrated with `:can-read?` and `:can_write`, each ancestor keeping its `:can_write`."
   [collection collection-id->collection]
   (if (or (nil? collection)
           (collection.root/is-root-collection? collection))
@@ -1320,7 +1320,7 @@
   (let [all-ids (mapcat #(some-> % effective-location-path location-path->ids) collections)
         collection-id->collection (if (seq all-ids)
                                     (u/index-by :id (t2/hydrate (vals (collections.db/collections-by-id all-ids))
-                                                                :can_read :can_write))
+                                                                :can-read? :can_write))
                                     {})]
     (map (fn [collection]
            (assoc collection
@@ -1683,7 +1683,7 @@
      (and (some? new-parent) (not (:archived new-parent))))
     (if (contains? updates :parent_id)
       (api/check-403
-       (and (:can_write (t2/hydrate new-parent :can_write))
+       (and (mi/can-write? (t2/hydrate new-parent :can-write?))
             (perms/set-has-full-permissions-for-set?
              @api/*current-user-permissions-set*
              (perms-for-unarchiving collection))))

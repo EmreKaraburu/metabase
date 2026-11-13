@@ -108,7 +108,7 @@
                              (= (qp.util/normalize-token visibility_type) :normal))
                          (not archived)
                          (not= active false)
-                         (mi/can-read? (t2/hydrate instance :can_read))))))
+                         (mi/can-read? (t2/hydrate instance :can-read?))))))
 
 (defn- metrics-for-table
   [table]

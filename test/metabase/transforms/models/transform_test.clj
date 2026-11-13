@@ -122,14 +122,14 @@
                  (data-perms/set-database-permission! group-id (mt/id) :perms/transforms :yes)
                  (mt/with-current-user (mt/user->id :rasta)
                    (testing "native transform cannot be written"
-                     (is (not (mi/can-write? (t2/hydrate native :can_write)))))
+                     (is (not (mi/can-write? (t2/hydrate native :can-write?)))))
                    (testing "non-native (MBQL) transform is unaffected"
-                     (is (mi/can-write? (t2/hydrate mbql :can_write))))))
+                     (is (mi/can-write? (t2/hydrate mbql :can-write?))))))
                (testing "with query-builder-and-native, native transform can be written"
                  (data-perms/set-database-permission! group-id (mt/id) :perms/create-queries :query-builder-and-native)
                  (data-perms/set-database-permission! group-id (mt/id) :perms/transforms :yes)
                  (mt/with-current-user (mt/user->id :rasta)
-                   (is (mi/can-write? (t2/hydrate native :can_write)))))))))))))
+                   (is (mi/can-write? (t2/hydrate native :can-write?)))))))))))))
 
 (deftest no-events-during-deserialization-test
   (testing "Transform lifecycle hooks do not publish events during deserialization"
@@ -329,14 +329,14 @@
                  (data-perms/set-database-permission! group-id (mt/id) :perms/transforms :yes)
                  (testing "while the Card is unreadable"
                    (mt/with-current-user (mt/user->id :rasta)
-                     (is (not (mi/can-read? (t2/hydrate stored :can_read))))
-                     (is (not (mi/can-write? (t2/hydrate stored :can_write))))
+                     (is (not (mi/can-read? (t2/hydrate stored :can-read?))))
+                     (is (not (mi/can-write? (t2/hydrate stored :can-write?))))
                      (is (not (mi/can-create? :model/Transform body)))))
                  (perms/grant-collection-read-permissions! group-id collection)
                  (testing "once the Card is readable"
                    (mt/with-current-user (mt/user->id :rasta)
-                     (is (mi/can-read? (t2/hydrate stored :can_read)))
-                     (is (mi/can-write? (t2/hydrate stored :can_write)))
+                     (is (mi/can-read? (t2/hydrate stored :can-read?)))
+                     (is (mi/can-write? (t2/hydrate stored :can-write?)))
                      (is (mi/can-create? :model/Transform body)))))))))))))
 
 (deftest data-analyst-access-follows-the-advanced-permissions-feature-test
@@ -357,13 +357,13 @@
             (mt/with-current-user (mt/user->id :rasta)
               (mt/when-ee-evailable
                (mt/with-premium-features #{:transforms-basic :hosting :advanced-permissions}
-                 (is (mi/can-read? (t2/hydrate stored :can_read)))
-                 (is (mi/can-write? (t2/hydrate stored :can_write)))
+                 (is (mi/can-read? (t2/hydrate stored :can-read?)))
+                 (is (mi/can-write? (t2/hydrate stored :can-write?)))
                  (is (mi/can-create? :model/Transform (into {} stored)))))
               (testing "and none once the feature is gone"
                 (mt/with-premium-features #{:transforms-basic :hosting}
-                  (is (not (mi/can-read? (t2/hydrate stored :can_read))))
-                  (is (not (mi/can-write? (t2/hydrate stored :can_write))))
+                  (is (not (mi/can-read? (t2/hydrate stored :can-read?))))
+                  (is (not (mi/can-write? (t2/hydrate stored :can-write?))))
                   (is (not (mi/can-create? :model/Transform (into {} stored)))))))))))))
 
 (deftest delete-while-run-writes-transform-does-not-deadlock-test

@@ -86,7 +86,7 @@
   "Whether the current user may save or delete a test of the Transform `transform-id` (see [[can-save-for-transform?]])."
   [transform-id :- ::lib.schema.id/transform]
   (let [transform (data-testing.db/transform transform-id)]
-    (can-save-for-transform? transform (some-> transform (t2/hydrate :can_write) mi/can-write?) can-run-native-query?)))
+    (can-save-for-transform? transform (some-> transform (t2/hydrate :can-write?) mi/can-write?) can-run-native-query?)))
 
 (mu/defn can-run-test? :- :boolean
   "Whether the current user may run a test of the Transform `transform-id`: they may read it, and run the native SQL of
@@ -95,7 +95,7 @@
   (let [transform (data-testing.db/transform transform-id)]
     (boolean
      (and transform
-          (mi/can-read? (t2/hydrate transform :can_read))
+          (mi/can-read? (t2/hydrate transform :can-read?))
           (or (mi/superuser?)
               (some-> (transforms-base.i/source-db-id transform) can-run-native-query?))))))
 
@@ -104,7 +104,7 @@
    (mi/can-read? :model/Transform (:transform_id instance)))
   ([_model pk]
    (when-let [transform-test (data-testing.db/transform-test pk)]
-     (mi/can-read? (t2/hydrate transform-test :can_read)))))
+     (mi/can-read? (t2/hydrate transform-test :can-read?)))))
 
 (defmethod mi/can-write? :model/TransformTest
   ([instance]
@@ -112,7 +112,7 @@
         (can-save? (:transform_id instance))))
   ([_model pk]
    (when-let [transform-test (data-testing.db/transform-test pk)]
-     (mi/can-write? (t2/hydrate transform-test :can_write)))))
+     (mi/can-write? (t2/hydrate transform-test :can-write?)))))
 
 (methodical/defmethod t2/batched-hydrate [:model/TransformTest :can_write]
   "Add whether the current user can write each transform test, loading their transforms at once and checking each
@@ -155,7 +155,7 @@
 
 (defmethod revision/revision-readable? :model/TransformTest
   [_model object]
-  (mi/can-read? (t2/hydrate (t2/instance :model/TransformTest object) :can_read)))
+  (mi/can-read? (t2/hydrate (t2/instance :model/TransformTest object) :can-read?)))
 
 (defmethod revision/check-revert-available ::saved-test
   [_model]

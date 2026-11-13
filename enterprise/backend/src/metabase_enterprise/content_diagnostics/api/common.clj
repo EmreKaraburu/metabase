@@ -367,7 +367,7 @@
   (filter mi/can-read? (t2/hydrate (cd.db/transforms
                         (readable-entities-where ids exclude-personal?
                                                  {:visibility-config archived-inclusive-visibility
-                                                  :exclude-archived? false})) :can_read)))
+                                                  :exclude-archived? false})) :can-read?)))
 
 (defn- hydrate-duplicate-entities
   "The findings' stored `duplicate_entity_ids` → `{[entity-type id] → {:id :name :entity_type <etype>

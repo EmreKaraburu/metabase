@@ -97,7 +97,7 @@
                                        {:table-ids (set table-ids)}
                                        {:db-ids #{database-id}}))
       (->> (erd.db/active-tables-in-database table-select-columns database-id opts)
-           (#(t2/hydrate % :can_read))
+           (#(t2/hydrate % :can-read?))
            (filter mi/can-read?)))))
 
 (defn- readable-table-ids

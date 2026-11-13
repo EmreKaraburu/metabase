@@ -99,28 +99,28 @@
   "Whether the current user may save or delete a test of the Card `card-id`: they may edit the card and run its query,
   and write the native SQL of a test against the Database of its query."
   [card-id :- ::lib.schema.id/card]
-  (card-allows? mi/can-write? :can_write card-id))
+  (card-allows? mi/can-write? :can-write? card-id))
 
 (mu/defn can-run? :- :boolean
   "Whether the current user may run the saved `card-test`: they may read its card and run the card's query, and write
   the native SQL of a test against the Database of the card's query."
   [card-test :- ::data-testing.schema/card-test]
   ;; Input SQL can read any table of the Database, and the guards do not check it, so reading the card is not enough.
-  (card-allows? mi/can-read? :can_read (:card_id card-test)))
+  (card-allows? mi/can-read? :can-read? (:card_id card-test)))
 
 (defmethod mi/can-read? :model/CardTest
   ([instance]
    (mi/can-read? :model/Card (:card_id instance)))
   ([_model pk]
    (when-let [card-test (data-testing.db/card-test pk)]
-     (mi/can-read? (t2/hydrate card-test :can_read)))))
+     (mi/can-read? (t2/hydrate card-test :can-read?)))))
 
 (defmethod mi/can-write? :model/CardTest
   ([instance]
    (can-save-test? (:card_id instance)))
   ([_model pk]
    (when-let [card-test (data-testing.db/card-test pk)]
-     (mi/can-write? (t2/hydrate card-test :can_write)))))
+     (mi/can-write? (t2/hydrate card-test :can-write?)))))
 
 (defmethod mi/can-create? :model/CardTest
   [_model instance]
@@ -143,7 +143,7 @@
 (defmethod revision/revision-readable? :model/CardTest
   [_model object]
   ;; An older revision can name a card that has since been deleted; nobody may read a revision about it.
-  (boolean (some-> (data-testing.db/card (:card_id object)) (t2/hydrate :can_read) mi/can-read?)))
+  (boolean (some-> (data-testing.db/card (:card_id object)) (t2/hydrate :can-read?) mi/can-read?)))
 
 (defmethod revision/revert-to-revision! :model/CardTest
   [_model id _user-id serialized-instance]

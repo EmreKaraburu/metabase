@@ -1006,7 +1006,7 @@
                              t2-instance))
         doc->t2 (comp (u/index-by (juxt :id t2/model) slow-t2-instances)
                       (juxt :id doc->t2-model))
-        slow-filtered (filterv (fn [doc] (some-> doc doc->t2 (t2/hydrate :can_read) mi/can-read?)) slow-docs)
+        slow-filtered (filterv (fn [doc] (some-> doc doc->t2 (t2/hydrate :can-read?) mi/can-read?)) slow-docs)
         result (into fast-filtered slow-filtered)
         time-ms (u/since-ms timer)]
     (log/debug "Permission filtering" {:before-count (count docs)

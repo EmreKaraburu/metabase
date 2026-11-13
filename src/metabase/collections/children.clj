@@ -1246,7 +1246,7 @@
   because you might not be able to see the top-level collections
   but be able to see, children of those invisible top-level collections."
   [root-collection model-set]
-  (if (mi/can-read? (t2/hydrate root-collection :can_read))
+  (if (mi/can-read? (t2/hydrate root-collection :can-read?))
     model-set
     (if (or (empty? model-set) (contains? model-set :collection))
       #{:collection}

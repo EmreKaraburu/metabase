@@ -30,5 +30,5 @@
       (mt/with-non-admin-groups-no-root-collection-perms
         (mt/with-current-user (mt/user->id :rasta)
           (let [root (assoc collection.root/root-collection :namespace :snippets)]
-            (is (true? (mi/can-read? (t2/hydrate root :can_read))))
-            (is (true? (mi/can-write? (t2/hydrate root :can_write))))))))))
+            (is (true? (mi/can-read? (t2/hydrate root :can-read?))))
+            (is (true? (mi/can-write? (t2/hydrate root :can-write?))))))))))

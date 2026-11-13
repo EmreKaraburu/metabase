@@ -123,7 +123,7 @@
   (when (seq ids)
     (into {}
           (comp (map (juxt :id :name)))
-          (filterv mi/can-read? (t2/hydrate (mcp.db/collections-for-read-check ids) :can_read)))))
+          (filterv mi/can-read? (t2/hydrate (mcp.db/collections-for-read-check ids) :can-read?)))))
 
 (defn- add-collection-paths
   "Attach `:collection_path` — ancestor collection names joined with `/`, ending in the
@@ -418,7 +418,7 @@
    sandboxed-user exclusion apply — optionally narrowed to names containing any query as a
    case-insensitive substring."
   [queries archived]
-  (let [readable (filter mi/can-read? (t2/hydrate (mcp.db/snippets-by-archived-state archived) :can_read))
+  (let [readable (filter mi/can-read? (t2/hydrate (mcp.db/snippets-by-archived-state archived) :can-read?))
         matches  (if (seq queries)
                    (let [needles (mapv u/lower-case-en queries)]
                      (filter (fn [{:keys [name]}]

@@ -244,11 +244,11 @@
   (testing "Workspace `mi/can-read?`"
     (mt/with-temp [:model/Workspace ws {}]
       (testing "non-superuser — false"
-        (with-normal-user (is (false? (mi/can-read? (t2/hydrate ws :can_read))))))
+        (with-normal-user (is (false? (mi/can-read? (t2/hydrate ws :can-read?))))))
       (testing "Data Analyst (non-superuser) — false"
-        (with-data-analyst (is (false? (mi/can-read? (t2/hydrate ws :can_read))))))
+        (with-data-analyst (is (false? (mi/can-read? (t2/hydrate ws :can-read?))))))
       (testing "superuser — true"
-        (with-admin (is (true? (mi/can-read? (t2/hydrate ws :can_read)))))))))
+        (with-admin (is (true? (mi/can-read? (t2/hydrate ws :can-read?)))))))))
 
 (deftest can-create?-test
   (testing "Workspace `mi/can-create?`"
@@ -263,15 +263,15 @@
   (testing "Workspace `mi/can-write?`"
     (mt/with-temp [:model/Workspace ws {}]
       (testing "non-superuser — false"
-        (with-normal-user (is (false? (mi/can-write? (t2/hydrate ws :can_write))))))
+        (with-normal-user (is (false? (mi/can-write? (t2/hydrate ws :can-write?))))))
       (testing "Data Analyst (non-superuser) — false"
-        (with-data-analyst (is (false? (mi/can-write? (t2/hydrate ws :can_write))))))
+        (with-data-analyst (is (false? (mi/can-write? (t2/hydrate ws :can-write?))))))
       (testing "superuser, empty workspace — true"
-        (with-admin (is (true? (mi/can-write? (t2/hydrate ws :can_write)))))))
+        (with-admin (is (true? (mi/can-write? (t2/hydrate ws :can-write?)))))))
     (mt/with-temp [:model/Database          {db1-id :id}       {}
                    :model/Database          {db2-id :id}       {}
                    :model/Workspace         {ws-id :id :as ws} {}
                    :model/WorkspaceDatabase _                  {:workspace_id ws-id, :database_id db1-id}
                    :model/WorkspaceDatabase _                  {:workspace_id ws-id, :database_id db2-id}]
       (testing "superuser with attached databases — true"
-        (with-admin (is (true? (mi/can-write? (t2/hydrate ws :can_write)))))))))
+        (with-admin (is (true? (mi/can-write? (t2/hydrate ws :can-write?)))))))))

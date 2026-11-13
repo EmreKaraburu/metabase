@@ -33,18 +33,18 @@
                                                     :status       :active}]
       (let [plugin (t2/select-one :model/CustomVizPlugin :id id)]
         (binding [api/*current-user-id* (mt/user->id :rasta)]
-          (is (true? (mi/can-read? (t2/hydrate plugin :can_read)))))
+          (is (true? (mi/can-read? (t2/hydrate plugin :can-read?)))))
         (binding [api/*current-user-id* nil]
-          (is (false? (mi/can-read? (t2/hydrate plugin :can_read))))))))
+          (is (false? (mi/can-read? (t2/hydrate plugin :can-read?))))))))
   (testing "write requires superuser"
     (mt/with-temp [:model/CustomVizPlugin {id :id} {:identifier   "perm-test-2"
                                                     :display_name "perm-test-2"
                                                     :status       :active}]
       (let [plugin (t2/select-one :model/CustomVizPlugin :id id)]
         (binding [api/*is-superuser?* true]
-          (is (true? (mi/can-write? (t2/hydrate plugin :can_write)))))
+          (is (true? (mi/can-write? (t2/hydrate plugin :can-write?)))))
         (binding [api/*is-superuser?* false]
-          (is (false? (mi/can-write? (t2/hydrate plugin :can_write))))))))
+          (is (false? (mi/can-write? (t2/hydrate plugin :can-write?))))))))
   (testing "create requires superuser"
     (binding [api/*is-superuser?* true]
       (is (true? (mi/can-create? :model/CustomVizPlugin {}))))

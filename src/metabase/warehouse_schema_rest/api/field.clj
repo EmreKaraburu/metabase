@@ -386,8 +386,8 @@
     (api/check-400 (request/limit) "Limit required if value is omitted"))
   (let [field        (api/check-404 (warehouse-schema-rest.db/field id))
         search-field (api/check-404 (warehouse-schema-rest.db/field search-id))]
-    (api/check-403 (mi/can-read? (t2/hydrate field :can_read)))
-    (api/check-403 (mi/can-read? (t2/hydrate search-field :can_read)))
+    (api/check-403 (mi/can-read? (t2/hydrate field :can-read?)))
+    (api/check-403 (mi/can-read? (t2/hydrate search-field :can-read?)))
     (parameters.field/search-values field search-field value (request/limit))))
 
 ;; TODO (Cam 2025-11-25) please add a response schema to this API endpoint, it makes it easier for our customers to

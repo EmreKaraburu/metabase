@@ -42,11 +42,11 @@
                                  (when-let [tag-ids (seq (:tag_ids instance))]
                                    (transform/transforms-with-tags tag-ids)))]
               (if (seq transforms)
-                (every? mi/can-write? (t2/hydrate transforms :can_write))
+                (every? mi/can-write? (t2/hydrate transforms :can-write?))
                 true)))))
   ([_model pk]
    (when-let [job (transforms.db/job pk)]
-     (mi/can-write? (t2/hydrate job :can_write)))))
+     (mi/can-write? (t2/hydrate job :can-write?)))))
 
 (defmethod mi/can-create? :model/TransformJob
   [_model instance]
@@ -58,7 +58,7 @@
                                 (when-let [tag-ids (seq (:tag_ids instance))]
                                   (transform/transforms-with-tags tag-ids)))]
              (if (seq transforms)
-               (every? mi/can-write? (t2/hydrate transforms :can_write))
+               (every? mi/can-write? (t2/hydrate transforms :can-write?))
                true)))))
 
 (mi/define-batched-hydration-method tag-ids

@@ -315,10 +315,10 @@
               :let  [instance (t2/instance model {:collection_id collection-id})]]
         (testing model
           (mt/with-test-user :crowberto
-            (is (true? (mi/can-write? (t2/hydrate instance :can_write)))))
+            (is (true? (mi/can-write? (t2/hydrate instance :can-write?)))))
           (mt/with-test-user :rasta
-            (is (false? (mi/can-write? (t2/hydrate instance :can_write))))
-            (is (false? (mi/can-read? (t2/hydrate instance :can_read))))))))))
+            (is (false? (mi/can-write? (t2/hydrate instance :can-write?))))
+            (is (false? (mi/can-read? (t2/hydrate instance :can-read?))))))))))
 
 (deftest ^:parallel can-read-via-parent-collection?-test
   (testing "read perm is true iff the current user has read on the parent collection"

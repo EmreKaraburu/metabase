@@ -379,11 +379,11 @@
 (defn read-check
   "Check whether we can read an existing `obj`, or `entity` with `id`. If the object doesn't exist, throw a 404; if we
   don't have proper permissions, throw a 403. This will fetch the object if it was not already fetched, hydrates its
-  `:can_read`, and returns `obj` if the check is successful."
+  `:can-read?`, and returns `obj` if the check is successful."
   ([obj]
    (check-404 obj)
    (try
-     (check-403 (mi/can-read? (t2/hydrate obj :can_read)))
+     (check-403 (mi/can-read? (t2/hydrate obj :can-read?)))
      (catch clojure.lang.ExceptionInfo e
        (log/errorf "Read permissions failure: %s" (ex-message e))
        (events/publish-event! :event/read-permission-failure {:user-id    *current-user-id*
@@ -405,7 +405,7 @@
   ([obj]
    (check-404 obj)
    (try
-     (check-403 (mi/can-write? (t2/hydrate obj :can_write)))
+     (check-403 (mi/can-write? (t2/hydrate obj :can-write?)))
      (catch clojure.lang.ExceptionInfo e
        (events/publish-event! :event/write-permission-failure {:user-id *current-user-id*
                                                                :object obj})

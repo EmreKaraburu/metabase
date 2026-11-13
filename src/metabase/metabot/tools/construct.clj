@@ -680,7 +680,7 @@
   (when-let [card (cond
                     (string? ref)                           (metabot.db/card-by-entity-id ref)
                     repr.resolve/*numeric-ids-allowed?*   (metabot.db/card ref))]
-    (when (mi/can-read? (t2/hydrate card :can_read))
+    (when (mi/can-read? (t2/hydrate card :can-read?))
       card)))
 
 (defn- check-curated-portable-sources!

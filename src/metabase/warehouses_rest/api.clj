@@ -62,7 +62,7 @@
   [dbs & {:keys [can-query?]}]
   (let [all-tables (warehouses-rest.db/active-visible-tables-for-databases (map :id dbs))
         _ (perms/prime-table-perms-cache {:db-ids (into #{} (map :id) dbs)})
-        filtered-tables (cond->> (filter mi/can-read? (t2/hydrate all-tables :can_read))
+        filtered-tables (cond->> (filter mi/can-read? (t2/hydrate all-tables :can-read?))
                           can-query?          (filter mi/can-query?))
         db-id->tables (group-by :db_id filtered-tables)]
     (for [db dbs]
@@ -143,7 +143,7 @@
   name and ID of these databases, removing all other fields."
   [dbs]
   (map
-   (fn [db] (if (mi/can-read? (t2/hydrate db :can_read))
+   (fn [db] (if (mi/can-read? (t2/hydrate db :can-read?))
               db
               (select-keys db [:id :name :tables])))
    (schema.table/filter-databases-by-data-model-perms dbs)))
@@ -199,7 +199,7 @@
       true                         add-can-upload-to-dbs
       true                         (t2/hydrate :router_user_attribute)
       include-editable-data-model? filter-databases-by-data-model-perms
-      exclude-uneditable-details?  (#(filter (some-fn :is_attached_dwh mi/can-write?) (t2/hydrate % :can_write)))
+      exclude-uneditable-details?  (#(filter (some-fn :is_attached_dwh mi/can-write?) (t2/hydrate % :can-write?)))
       ;; Perms checks for uploadable DBs are handled by exclude-uneditable-details? (see below)
       include-only-uploadable?     (#(filter uploadable-db? %)))))
 
@@ -304,7 +304,7 @@
         (update :tables (fn [tables]
                           (cond->> tables
                             ; filter hidden tables
-                            true                        (#(t2/hydrate % :can_read))
+                            true                        (#(t2/hydrate % :can-read?))
                             true                        (filter (every-pred (complement :visibility_type) mi/can-read?))
                             true                        (map (fn [table] (update table :schema str)))
                             ; filter hidden fields
@@ -331,7 +331,7 @@
     true                         (get-database-hydrate-include include)
     true                         add-can-upload
     include-editable-data-model? check-db-data-model-perms
-    (mi/can-write? (t2/hydrate db :can_write))           (assoc :can-manage true)))
+    (mi/can-write? (t2/hydrate db :can-write?))           (assoc :can-manage true)))
 
 ;; TODO (Cam 10/28/25) -- fix this endpoint so it uses kebab-case for query parameters for consistency with the rest
 ;; of the REST API
@@ -419,11 +419,11 @@
                           (if-not include-editable-data-model?
                             ;; If we're filtering by data model perms, table perm checks were already done by
                             ;; check-db-data-model-perms
-                            (filter mi/can-read? (t2/hydrate tables :can_read))
+                            (filter mi/can-read? (t2/hydrate tables :can-read?))
                             tables)))
         (update :tables (fn [tables]
                           (for [table tables]
-                            (update table :segments #(filter mi/can-read? (t2/hydrate % :can_read))))))
+                            (update table :segments #(filter mi/can-read? (t2/hydrate % :can-read?))))))
         (update :tables (fn [tables]
                           (for [table tables]
                             (update table :schema str))))
@@ -505,7 +505,7 @@
   lowercased table and field names."
   [db-id like-pattern]
   (let [limit  50
-        tables (filter mi/can-read? (t2/hydrate (autocomplete-tables db-id like-pattern limit) :can_read))
+        tables (filter mi/can-read? (t2/hydrate (autocomplete-tables db-id like-pattern limit) :can-read?))
         fields (readable-fields-only (autocomplete-fields db-id like-pattern limit))]
     (autocomplete-results tables fields limit)))
 
@@ -570,7 +570,7 @@
   (api/read-check (warehouses/get-database id))
   (try
     (->> (autocomplete-cards id query include_dashboard_questions)
-         (#(t2/hydrate % :can_read))
+         (#(t2/hydrate % :can-read?))
          (filter mi/can-read?)
          (map #(select-keys % [:id :name :type :collection_name])))
     (catch Throwable e
@@ -589,7 +589,7 @@
   (warehouses/get-database id)
   (perms/prime-table-perms-cache {:db-ids #{id}})
   (let [fields (filter mi/can-read? (t2/hydrate (-> (warehouses-rest.db/non-sensitive-fields-for-tables (warehouses-rest.db/table-ids-for-database id))
-                                        (t2/hydrate :table)) :can_read))]
+                                        (t2/hydrate :table)) :can-read?))]
     (for [{:keys [id name display_name table table_id base_type semantic_type]} fields]
       {:id            id
        :name          name
@@ -621,7 +621,7 @@
                         (let [table-ids (into #{} (map :id) (schema.table/filter-tables-by-data-model-perms
                                                              (distinct (map :table fields))))]
                           (filter (comp table-ids :table_id) fields))
-                        (filter mi/can-read? (t2/hydrate fields :can_read)))]
+                        (filter mi/can-read? (t2/hydrate fields :can-read?)))]
     (sort-by (comp u/lower-case-en :name :table) fields)))
 
 ;;; ----------------------------------------------- POST /api/database -----------------------------------------------
@@ -1006,7 +1006,7 @@
   (api/check-superuser)
   (t2/with-transaction [_conn]
     (api/let-404 [db (warehouses-rest.db/database id)]
-      (api/check-403 (mi/can-write? (t2/hydrate db :can_write)))
+      (api/check-403 (mi/can-write? (t2/hydrate db :can-write?)))
       (warehouses-rest.db/delete-destination-databases! id)
       (database-routing/delete-associated-database-router! id)
       (warehouses-rest.db/delete-database! id)
@@ -1133,8 +1133,8 @@
   (let [db (warehouses/get-database id)]
     (api/check-403 (or (:is_attached_dwh db)
                        (perms/has-db-transforms-permission? api/*current-user-id* (:id db))
-                       (and (mi/can-write? (t2/hydrate db :can_write))
-                            (mi/can-read? (t2/hydrate db :can_read)))))
+                       (and (mi/can-write? (t2/hydrate db :can-write?))
+                            (mi/can-read? (t2/hydrate db :can-read?)))))
     (->> (driver.u/lib-database (:id db))
          (driver/syncable-schemas (:engine db))
          (vec)

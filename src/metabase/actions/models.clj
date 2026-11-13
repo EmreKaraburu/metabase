@@ -334,7 +334,7 @@
 
 (defmethod mi/can-update? :model/Action
   [action changes]
-  (and (mi/can-write? (t2/hydrate action :can_write))
+  (and (mi/can-write? (t2/hydrate action :can-write?))
        (collection-writable? (merge action changes))))
 
 (def ^:private action-columns

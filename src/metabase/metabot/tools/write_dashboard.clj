@@ -444,7 +444,7 @@
   (when dashboard_id
     (let [dashboard (tools/with-entity {:kind :dashboard, :id dashboard_id}
                       (api/read-check :model/Dashboard dashboard_id))]
-      (when-not (mi/can-write? (t2/hydrate dashboard :can_write))
+      (when-not (mi/can-write? (t2/hydrate dashboard :can-write?))
         (dashboard-not-writable! {:dashboard-id dashboard_id}))
       (check-not-trashed! dashboard args)
       dashboard)))
@@ -524,7 +524,7 @@
       (let [curated (curation/curated-ids (map #(vector "card" %) card-ids))
             refused (into []
                           (filter #(and (not (contains? curated ["card" %]))
-                                        (some-> (metabot.db/card %) (t2/hydrate :can_read) mi/can-read?)))
+                                        (some-> (metabot.db/card %) (t2/hydrate :can-read?) mi/can-read?)))
                           card-ids)]
         (when (seq refused)
           (cards-not-curated! {:card-ids refused}))))))
@@ -537,7 +537,7 @@
   [dashboard ops]
   (when-let [card-ids (seq (placed-card-ids ops))]
     (when-let [foreign (seq (filter #(and (not= (:dashboard_id %) (:id dashboard))
-                                          (mi/can-read? (t2/hydrate % :can_read)))
+                                          (mi/can-read? (t2/hydrate % :can-read?)))
                                     (metabot.db/dashboard-questions (vec card-ids))))]
       (let [shown   (into #{}
                           (mapcat (fn [{:keys [card_id series]}] (cons card_id (map :id series))))
@@ -688,7 +688,7 @@
   are shown because this conversation saved them, and a tool that later uses the card judges it again."
   [dashcards saved-charts]
   (if-not (shared/curated-only?)
-    #(mi/can-read? (t2/hydrate % :can_read))
+    #(mi/can-read? (t2/hydrate % :can-read?))
     (let [card-ids        (into #{} (keep (comp :id :card)) dashcards)
           curated         (if (seq card-ids)
                             (curation/curated-ids (map #(vector "card" %) card-ids))
@@ -696,7 +696,7 @@
           charts          (into #{} (map :card-id) saved-charts)
           conversation-id (shared/current-conversation-id)]
       (fn [{card-id :id :as card}]
-        (and (mi/can-read? (t2/hydrate card :can_read))
+        (and (mi/can-read? (t2/hydrate card :can-read?))
              (or (contains? charts card-id)
                  (and conversation-id (= conversation-id (:metabot_conversation_id card)))
                  (contains? curated ["card" card-id])))))))

@@ -608,7 +608,7 @@
     (current-user-is-creator? notification)
     (current-user-is-recipient? notification)))
   ([_ pk]
-   (mi/can-read? (t2/hydrate (notification.db/notification pk) :can_read))))
+   (mi/can-read? (t2/hydrate (notification.db/notification pk) :can-read?))))
 
 (defmethod mi/can-create? :model/Notification
   [_ notification]
@@ -650,7 +650,7 @@
       (perms/current-user-has-application-permissions? :subscription))
      (current-user-can-read-payload? notification))))
   ([_model pk]
-   (mi/can-write? (t2/hydrate (notification.db/notification pk) :can_write))))
+   (mi/can-write? (t2/hydrate (notification.db/notification pk) :can-write?))))
 
 ;; ------------------------------------------------------------------------------------------------;;
 ;;                                         Public APIs                                             ;;

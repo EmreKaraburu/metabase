@@ -63,7 +63,7 @@
               (= (:collection_id instance) (:id (audit/default-audit-collection)))))
         (mi/current-user-has-full-permissions? (mi/perms-objects-set instance :write))))
   ([_ pk]
-   (mi/can-write? (t2/hydrate (dashboards.db/dashboard pk) :can_write))))
+   (mi/can-write? (t2/hydrate (dashboards.db/dashboard pk) :can-write?))))
 
 (perms/define-collection-based-visibility! :model/Dashboard)
 

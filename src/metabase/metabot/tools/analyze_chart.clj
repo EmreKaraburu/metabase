@@ -83,7 +83,7 @@ Do not use headers (##). Do not list statistics. Do not analyze series separatel
                                id))
                            (:user_is_viewing (shared/current-context)))]
     (let [card (metabot.db/card card-id)]
-      (when (and (#{:question :model} (:type card)) (mi/can-read? (t2/hydrate card :can_read)))
+      (when (and (#{:question :model} (:type card)) (mi/can-read? (t2/hydrate card :can-read?)))
         {:id card-id :type (name (:type card))}))))
 
 (defn- read-values-steps

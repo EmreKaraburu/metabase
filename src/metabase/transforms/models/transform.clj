@@ -99,19 +99,19 @@
    (transform-readable? instance))
   ([_model pk]
    (when-let [transform (transforms.db/transform pk)]
-     (mi/can-read? (t2/hydrate transform :can_read)))))
+     (mi/can-read? (t2/hydrate transform :can-read?)))))
 
 (defmethod mi/can-write? :model/Transform
   ([instance]
    (transform-deletable? instance))
   ([_model pk]
    (when-let [transform (transforms.db/transform pk)]
-     (mi/can-write? (t2/hydrate transform :can_write)))))
+     (mi/can-write? (t2/hydrate transform :can-write?)))))
 
 ;; Users who can read the transform can also query it. This is a duplicate, but keeps things explicit.
 (defmethod mi/can-query? :model/Transform
   ([instance]
-   (mi/can-read? (t2/hydrate instance :can_read)))
+   (mi/can-read? (t2/hydrate instance :can-read?)))
   ([model pk]
    (mi/can-read? model pk)))
 

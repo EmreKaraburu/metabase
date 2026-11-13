@@ -71,11 +71,11 @@
       (data-perms/set-database-permission! pg db-id :perms/view-data :blocked)
       (data-perms/set-database-permission! pg db-id :perms/create-queries :no)
       (mt/with-test-user :rasta
-        (is (not (mi/can-read? (t2/hydrate (t2/select-one :model/Field :id field-id) :can_read)))))
+        (is (not (mi/can-read? (t2/hydrate (t2/select-one :model/Field :id field-id) :can-read?)))))
       ;; Grant view-data permission - field should still not be readable
       (data-perms/set-table-permission! pg table-id :perms/view-data :unrestricted)
       (mt/with-test-user :rasta
-        (is (false? (boolean (mi/can-read? (t2/hydrate (t2/select-one :model/Field :id field-id) :can_read)))))))))
+        (is (false? (boolean (mi/can-read? (t2/hydrate (t2/select-one :model/Field :id field-id) :can-read?)))))))))
 
 (deftest field-can-read?-delegates-to-parent-table-allowed-test
   (testing "Field can-read? delegates to parent table"
@@ -89,12 +89,12 @@
       (data-perms/set-database-permission! pg db-id :perms/view-data :blocked)
       (data-perms/set-database-permission! pg db-id :perms/create-queries :no)
       (mt/with-test-user :rasta
-        (is (not (mi/can-read? (t2/hydrate (t2/select-one :model/Field :id field-id) :can_read)))))
+        (is (not (mi/can-read? (t2/hydrate (t2/select-one :model/Field :id field-id) :can-read?)))))
       ;; Grant view-data permission - now field should be readable
       (data-perms/set-table-permission! pg table-id :perms/view-data :unrestricted)
       (data-perms/set-table-permission! pg table-id :perms/create-queries :query-builder)
       (mt/with-test-user :rasta
-        (is (true? (mi/can-read? (t2/hydrate (t2/select-one :model/Field :id field-id) :can_read))))))))
+        (is (true? (mi/can-read? (t2/hydrate (t2/select-one :model/Field :id field-id) :can-read?))))))))
 
 (deftest field-can-query?-delegates-to-parent-table-test
   (testing "Field can-query? delegates to parent table"

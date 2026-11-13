@@ -18,7 +18,7 @@
         _            (api/check-404 message)
         conversation (metabot.db/conversation-id-and-user-id (:conversation_id message))
         _            (api/check-404 conversation)
-        _            (api/check-404 (mi/can-read? (t2/hydrate conversation :can_read)))]
+        _            (api/check-404 (mi/can-read? (t2/hydrate conversation :can-read?)))]
     (assoc message :conversation conversation)))
 
 (defn- upsert-feedback!

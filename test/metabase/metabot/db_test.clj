@@ -30,7 +30,7 @@
           (mt/with-test-user user
             (is (= (mi/can-query? :model/Table table-id) (mi/can-query? row))
                 (str "can-query? disagrees for " user))
-            (is (= (mi/can-read? :model/Table table-id) (mi/can-read? (t2/hydrate row :can_read)))
+            (is (= (mi/can-read? :model/Table table-id) (mi/can-read? (t2/hydrate row :can-read?)))
                 (str "can-read? disagrees for " user))))))))
 
 (deftest table-schema-rows-read-published-state-test
@@ -86,9 +86,9 @@
           (is (contains? row :document_id)))
         (testing "and the narrowed row agrees with the full row, for a reader and a non-reader"
           (mt/with-test-user :crowberto
-            (is (= (mi/can-read? :model/Card card-id) (mi/can-read? (t2/hydrate row :can_read)))))
+            (is (= (mi/can-read? :model/Card card-id) (mi/can-read? (t2/hydrate row :can-read?)))))
           (perms/revoke-collection-permissions! (perms-group/all-users) coll-id)
           (mt/with-test-user :rasta
-            (is (= (mi/can-read? :model/Card card-id) (mi/can-read? (t2/hydrate row :can_read))))
-            (is (false? (boolean (mi/can-read? (t2/hydrate row :can_read))))
+            (is (= (mi/can-read? :model/Card card-id) (mi/can-read? (t2/hydrate row :can-read?))))
+            (is (false? (boolean (mi/can-read? (t2/hydrate row :can-read?))))
                 "and the narrowed row does not make a restricted card look readable")))))))

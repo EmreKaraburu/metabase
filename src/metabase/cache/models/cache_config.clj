@@ -51,7 +51,7 @@
   [instance target-collection-id target-database]
   (case (:model instance)
     "root"      (mi/superuser?)
-    "database"  (boolean (some-> target-database (t2/hydrate :can_write) mi/can-write?))
+    "database"  (boolean (some-> target-database (t2/hydrate :can-write?) mi/can-write?))
     ("dashboard" "question")
     (mi/current-user-has-full-permissions?
      (perms/perms-objects-set-for-parent-collection target-collection-id :write))))
@@ -63,7 +63,7 @@
                       (when (= "database" (:model instance))
                         (first (cache.db/databases [(:model_id instance)])))))
   ([_model pk]
-   (mi/can-write? (t2/hydrate (cache.db/cache-config pk) :can_write))))
+   (mi/can-write? (t2/hydrate (cache.db/cache-config pk) :can-write?))))
 
 (methodical/defmethod t2/batched-hydrate [:model/CacheConfig :can_write]
   "Add whether the current user can write each CacheConfig, looking up the dashboards, cards, and databases they
@@ -93,7 +93,7 @@
      "dashboard" (mi/can-read? :model/Dashboard (:model_id instance))
      "question"  (mi/can-read? :model/Card (:model_id instance))))
   ([_model pk]
-   (mi/can-read? (t2/hydrate (cache.db/cache-config pk) :can_read))))
+   (mi/can-read? (t2/hydrate (cache.db/cache-config pk) :can-read?))))
 
 (defn- can-set-cache-policy?
   "Check if the current user can set a cache policy for an entity.
@@ -102,7 +102,7 @@
   (mi/can-write? (t2/hydrate (t2/instance :model/CacheConfig {:model (-> (t2/model instance)
                                                              name
                                                              u/lower-case-en)
-                                                  :model_id model-id}) :can_write)))
+                                                  :model_id model-id}) :can-write?)))
 
 (methodical/defmethod t2/batched-hydrate [:perms/use-parent-collection-perms :can_set_cache_policy]
   [_model k models]

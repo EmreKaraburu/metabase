@@ -83,7 +83,7 @@
     api/*current-user-id*   (try
                               (if (and audited? *audit-refusals?*)
                                 (api/read-check row)
-                                (do (api/check-403 (mi/can-read? (t2/hydrate row :can_read))) row))
+                                (do (api/check-403 (mi/can-read? (t2/hydrate row :can-read?))) row))
                               (catch clojure.lang.ExceptionInfo e
                                 (if (= 403 (:status-code (ex-data e)))
                                   (do (reset! *last-lookup-refused?* true)
