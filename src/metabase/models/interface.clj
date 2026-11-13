@@ -645,42 +645,15 @@
 
 ;;; TODO -- consider moving all this stuff into the `permissions` module
 
-(defmulti perms-objects-set
-  "Return a set of permissions object paths that a user must have access to in order to access this object. This should
-  be something like
-
-    #{\"/db/1/schema/public/table/20/\"}
-
-  `read-or-write` will be either `:read` or `:write`, depending on which permissions set we're fetching (these will be
-  the same sets for most models; they can ignore this param)."
-  {:arglists '([instance read-or-write])}
-  dispatch-on-model)
-
-(defmethod perms-objects-set :default
-  [_instance _read-or-write]
-  nil)
-
 (defmulti can-read?
-  "Return whether [[metabase.api.common/*current-user*]] has *read* permissions for an object. You should typically use
-  one of these implementations:
-
-  *  `(constantly true)`
-  *  `superuser?`
-  *  `(partial current-user-has-full-permissions? :read)` (you must also implement [[perms-objects-set]] to use this)
-  *  `(partial current-user-has-partial-permissions? :read)` (you must also implement [[perms-objects-set]] to use
-     this)"
+  "Return whether [[metabase.api.common/*current-user*]] has *read* permissions for an object, from the permission
+  getters of the `permissions` module; [[superuser?]] and the `::read-policy.*` keywords cover the simple cases."
   {:arglists '([instance] [model pk])}
   dispatch-on-model)
 
 (defmulti can-write?
-  "Return whether [[metabase.api.common/*current-user*]] has *write* permissions for an object. You should typically use
-  one of these implementations:
-
-  *  `(constantly true)`
-  *  `superuser?`
-  *  `(partial current-user-has-full-permissions? :write)` (you must also implement [[perms-objects-set]] to use this)
-  *  `(partial current-user-has-partial-permissions? :write)` (you must also implement [[perms-objects-set]] to use
-      this)"
+  "Return whether [[metabase.api.common/*current-user*]] has *write* permissions for an object, from the permission
+  getters of the `permissions` module; [[superuser?]] and the `::write-policy.*` keywords cover the simple cases."
   {:arglists '([instance] [model pk])}
   dispatch-on-model)
 
@@ -795,42 +768,6 @@
   []
   @(requiring-resolve 'metabase.api.common/*current-user-id*))
 
-(defn- current-user-permissions-set []
-  @@(requiring-resolve 'metabase.api.common/*current-user-permissions-set*))
-
-(defn- current-user-has-root-permissions? []
-  (contains? (current-user-permissions-set) "/"))
-
-(mu/defn- check-perms-with-fn
-  ([fn-symb       :- qualified-symbol?
-    read-or-write :- [:enum :read :write]
-    a-model       :- qualified-keyword?
-    object-id     :- [:or pos-int? string?]]
-   (or (current-user-has-root-permissions?)
-       (check-perms-with-fn fn-symb read-or-write (models.db/entity-by-pk a-model (first (t2/primary-keys a-model)) object-id))))
-
-  ([fn-symb       :- qualified-symbol?
-    read-or-write :- [:enum :read :write]
-    object        :- [:maybe [:fn {:error/message "a Toucan instance or model-like record"}
-                              #(some? (t2.protocols/model %))]]]
-   (and object
-        (check-perms-with-fn fn-symb (perms-objects-set object read-or-write))))
-
-  ([fn-symb   :- qualified-symbol?
-    perms-set :- [:set :string]]
-   ;; resolves the permissions implementation lazily to avoid a models -> permissions load cycle
-   (let [f #_{:clj-kondo/ignore [:metabase/modules]} (requiring-resolve fn-symb)]
-     (assert f)
-     (u/prog1 (f (current-user-permissions-set) perms-set)
-       (log/tracef "Perms check: %s -> %s" (pr-str (list fn-symb (current-user-permissions-set) perms-set)) <>)))))
-
-(def ^{:arglists '([read-or-write model object-id] [read-or-write object] [perms-set])}
-  current-user-has-full-permissions?
-  "Implementation of [[can-read?]]/[[can-write?]] for the old permissions system. `true` if the current user has *full*
-  permissions for the paths returned by its implementation of [[perms-objects-set]]. (`read-or-write` is either `:read` or
-  `:write` and passed to [[perms-objects-set]]; you'll usually want to partially bind it in the implementation map)."
-  (partial check-perms-with-fn 'metabase.permissions.models.permissions/set-has-full-permissions-for-set?))
-
 (defmethod can-read? ::read-policy.always-allow
   ([_instance]
    true)
@@ -842,18 +779,6 @@
    true)
   ([_model _pk]
    true))
-
-(defmethod can-read? ::read-policy.full-perms-for-perms-set
-  ([instance]
-   (current-user-has-full-permissions? :read instance))
-  ([model pk]
-   (current-user-has-full-permissions? :read model pk)))
-
-(defmethod can-write? ::write-policy.full-perms-for-perms-set
-  ([instance]
-   (current-user-has-full-permissions? :write instance))
-  ([model pk]
-   (current-user-has-full-permissions? :write model pk)))
 
 (defmethod can-read? ::read-policy.superuser
   ([_instance]

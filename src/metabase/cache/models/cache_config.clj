@@ -1,6 +1,7 @@
 (ns metabase.cache.models.cache-config
   "A model representing cache configuration."
   (:require
+   [metabase.api.common :as api]
    [java-time.api :as t]
    [medley.core :as m]
    [metabase.cache.db :as cache.db]
@@ -53,8 +54,10 @@
     "root"      (mi/superuser?)
     "database"  (boolean (some-> target-database (t2/hydrate :can-write?) mi/can-write?))
     ("dashboard" "question")
-    (mi/current-user-has-full-permissions?
-     (perms/perms-objects-set-for-parent-collection target-collection-id :write))))
+    (perms/collection-permission-at-least?
+     (get (perms/collection-permissions-for-user (api/current-user-info) [target-collection-id] {:root-namespace nil})
+          target-collection-id)
+     :read-and-write)))
 
 (defmethod mi/can-write? :model/CacheConfig
   ([instance]

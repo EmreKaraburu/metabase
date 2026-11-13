@@ -11,6 +11,7 @@
   | `:card/download-data` | download data from the card query | card → tables used in query | perms/download-results perms/collection-access |
   "
   (:require
+   [metabase.request.core :as request]
    [clojure.set :as set]
    [metabase-enterprise.permission-debug.db :as permission-debug.db]
    [metabase.lib.core :as lib]
@@ -91,7 +92,7 @@
    :suggestions {}})
 
 (defn- user-can-read?
-  "Whether the User with `user-id` can read the row of `model` with `pk`, checked as that User."
+  "Whether the user with `user-id` can read the row of `model` with `pk`, checked as that user."
   [model pk user-id]
   (request/with-current-user user-id
     (mi/can-read? model pk)))

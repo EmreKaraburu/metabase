@@ -237,10 +237,6 @@
   [_model {collection-id :collection_id}]
   (collection/can-write-collection-or-root? collection-id {:root-namespace nil}))
 
-(defmethod mi/perms-objects-set :model/Card
-  [card read-or-write]
-  (perms/perms-objects-set-for-parent-collection (:collection_id card) read-or-write))
-
 (defn model?
   "Returns true if `card` is a model."
   [card]

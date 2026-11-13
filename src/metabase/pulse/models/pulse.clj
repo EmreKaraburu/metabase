@@ -49,8 +49,7 @@
 (doto :model/Pulse
   (derive :metabase/model)
   (derive :hook/timestamped?)
-  (derive :hook/entity-id)
-  (derive ::mi/read-policy.full-perms-for-perms-set))
+  (derive :hook/entity-id))
 
 (def ^:private transform-pulse-parameters
   "Toucan 2 transform for a Pulse's `:parameters`, normalized like a Dashboard's but with each `:type` optional."
@@ -145,11 +144,16 @@
 ;;; non-admin can write a Dashboard Subscription only if they are its creator. (Admins have full read and write
 ;;; permissions for all objects.) These checks are handled by the `can-read?` and `can-write?` methods below.
 
-(defmethod mi/perms-objects-set :model/Pulse
-  [notification read-or-write]
-  (if (is-alert? notification)
-    (mi/perms-objects-set (alert->card notification) read-or-write)
-    (perms/perms-objects-set-for-parent-collection (:collection_id notification) read-or-write)))
+(defn- collection-permits?
+  "Whether the current user has `permission` on the Collection of `notification`: its Card's for an Alert, its own
+  otherwise."
+  [notification permission]
+  (let [owner (if (is-alert? notification) (alert->card notification) notification)]
+    (api/check-500 (contains? owner :collection_id) "No :collection_id is set for the Collection check of a Pulse.")
+    (perms/collection-permission-at-least?
+     (get (perms/collection-permissions-for-user (api/current-user-info) [(:collection_id owner)] {:root-namespace nil})
+          (:collection_id owner))
+     permission)))
 
 (defn- current-user-is-creator?
   [notification]
@@ -167,7 +171,7 @@
 (defmethod mi/can-read? :model/Pulse
   [notification]
   (if (is-alert? notification)
-    (mi/current-user-has-full-permissions? :read notification)
+    (collection-permits? notification :read)
     (or api/*is-superuser?*
         (current-user-is-creator? notification)
         (current-user-is-recipient? notification))))
@@ -177,9 +181,9 @@
 (defmethod mi/can-write? :model/Pulse
   [notification]
   (if (is-alert? notification)
-    (mi/current-user-has-full-permissions? :write notification)
+    (collection-permits? notification :read-and-write)
     (or api/*is-superuser?*
-        (and (mi/current-user-has-full-permissions? :read notification)
+        (and (collection-permits? notification :read)
              (current-user-is-creator? notification)))))
 
 (defn- can-read-attachments?
@@ -512,7 +516,7 @@
   "If the current user does not have collection read permissions for the pulse, but can still read the pulse due to
   being the creator or a recipient, we return it with some metadata removed."
   [pulse]
-  (if (mi/current-user-has-full-permissions? :read pulse)
+  (if (collection-permits? pulse :read)
     pulse
     (-> (dissoc pulse :cards)
         (update :channels
