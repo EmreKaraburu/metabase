@@ -12,7 +12,7 @@
   [model id]
   (when id
     (when-let [instance (revisions.db/entity model id)]
-      (when (mi/can-read? (t2/hydrate instance :can_read))
+      (when (:can_read (t2/hydrate instance :can_read))
         (:name instance)))))
 
 (defn- match-1 [k v1 v2 identifier]

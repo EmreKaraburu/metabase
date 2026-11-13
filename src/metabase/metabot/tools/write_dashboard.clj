@@ -444,7 +444,7 @@
   (when dashboard_id
     (let [dashboard (tools/with-entity {:kind :dashboard, :id dashboard_id}
                       (api/read-check :model/Dashboard dashboard_id))]
-      (when-not (mi/can-write? (t2/hydrate dashboard :can_write))
+      (when-not (:can_write (t2/hydrate dashboard :can_write))
         (dashboard-not-writable! {:dashboard-id dashboard_id}))
       (check-not-trashed! dashboard args)
       dashboard)))
@@ -537,7 +537,7 @@
   [dashboard ops]
   (when-let [card-ids (seq (placed-card-ids ops))]
     (when-let [foreign (seq (filter #(and (not= (:dashboard_id %) (:id dashboard))
-                                          (mi/can-read? (t2/hydrate % :can_read)))
+                                          (:can_read (t2/hydrate % :can_read)))
                                     (metabot.db/dashboard-questions (vec card-ids))))]
       (let [shown   (into #{}
                           (mapcat (fn [{:keys [card_id series]}] (cons card_id (map :id series))))
@@ -696,7 +696,7 @@
           charts          (into #{} (map :card-id) saved-charts)
           conversation-id (shared/current-conversation-id)]
       (fn [{card-id :id :as card}]
-        (and (mi/can-read? (t2/hydrate card :can_read))
+        (and (:can_read (t2/hydrate card :can_read))
              (or (contains? charts card-id)
                  (and conversation-id (= conversation-id (:metabot_conversation_id card)))
                  (contains? curated ["card" card-id])))))))

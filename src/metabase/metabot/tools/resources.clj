@@ -513,7 +513,7 @@
    :id            id
    :name          name
    :collection_id collection_id
-   :can_write     (boolean (mi/can-write? (t2/hydrate dashboard :can_write)))
+   :can_write     (boolean (:can_write (t2/hydrate dashboard :can_write)))
    :description   description
    :uri           (llm-shape/metabase-uri :dashboard id)})
 
@@ -523,7 +523,7 @@
    :id            id
    :name          name
    :collection_id collection_id
-   :can_write     (boolean (mi/can-write? (t2/hydrate document :can_write)))
+   :can_write     (boolean (:can_write (t2/hydrate document :can_write)))
    :uri           (llm-shape/metabase-uri :document id)})
 
 (defn- present-transform
@@ -581,8 +581,7 @@
   "metabase://collections (root only) and metabase://collections?tree=true (flat list of all)."
   [{:keys [tree] :as query-params}]
   (let [tree?    (= "true" tree)
-        colls    (->> (t2/hydrate (metabot.db/navigable-collections tree?) :can_read :can_write)
-                      (filter :can_read))
+        colls    (t2/hydrate (api/readable (metabot.db/navigable-collections tree?)) :can_write)
         ;; For tree mode, compute path names by chaining ancestor names.
         id->name (when tree? (u/index-by :id :name colls))
         ancestors (fn [{:keys [location]}]
@@ -640,8 +639,7 @@
 (defn- fetch-database-models [id-str query-params]
   (let [db-id  (parse-long id-str)
         _      (warehouses/get-database db-id)
-        models (->> (t2/hydrate (metabot.db/models-for-database db-id) :can_read)
-                    (filter :can_read)
+        models (->> (api/readable (metabot.db/models-for-database db-id))
                     (mapv present-card))]
     (list-result :database-models models query-params)))
 
@@ -696,19 +694,15 @@
   (documents/with-content-gate-cache
     (let [coll-id        (parse-long id-str)
           coll           (when-not (= id-str "root") (readable-collection id-str))
-          cards          (->> (t2/hydrate (metabot.db/cards-in-collection coll-id) :can_read)
-                              (filter :can_read))
-          dashboards     (->> (t2/hydrate (metabot.db/dashboards-in-collection coll-id) :can_read)
-                              (filter :can_read))
+          cards          (->> (api/readable (metabot.db/cards-in-collection coll-id)))
+          dashboards     (->> (api/readable (metabot.db/dashboards-in-collection coll-id)))
           ;; Exploration Summary documents are only through their exploration — so they stay out of this listing
-          documents      (->> (t2/hydrate (metabot.db/documents-in-collection coll-id) :can_read)
-                              (filter :can_read))
-          subcollections (->> (t2/hydrate (if (= id-str "root")
-                                            (metabot.db/navigable-collections false)
-                                            (metabot.db/unarchived-collections-at-location
-                                             (collection/children-location coll)))
-                                          :can_read :can_write)
-                              (filter :can_read))
+          documents      (->> (api/readable (metabot.db/documents-in-collection coll-id)))
+          subcollections (t2/hydrate (api/readable (if (= id-str "root")
+                                                     (metabot.db/navigable-collections false)
+                                                     (metabot.db/unarchived-collections-at-location
+                                                      (collection/children-location coll))))
+                                     :can_write)
           items          (concat (map present-collection subcollections)
                                  (map present-card cards)
                                  (map present-dashboard dashboards)
@@ -717,11 +711,11 @@
 
 (defn- fetch-collection-subcollections [id-str query-params]
   (let [coll    (when-not (= id-str "root") (readable-collection id-str))
-        subs    (->> (t2/hydrate (if (= id-str "root")
-                                   (metabot.db/navigable-collections false)
-                                   (metabot.db/unarchived-collections-at-location (collection/children-location coll)))
-                                 :can_read :can_write)
-                     (filter :can_read)
+        subs    (->> (t2/hydrate (api/readable (if (= id-str "root")
+                                                 (metabot.db/navigable-collections false)
+                                                 (metabot.db/unarchived-collections-at-location
+                                                  (collection/children-location coll))))
+                                 :can_write)
                      (mapv present-collection))]
     (list-result :collection-subcollections subs query-params)))
 
@@ -842,8 +836,7 @@
   (let [table-id   (parse-long id-str)
         table      (active-table-resource table-id)
         db-id      (:db_id table)
-        cards      (->> (t2/hydrate (metabot.db/cards-for-table table-id) :can_read)
-                        (filter :can_read)
+        cards      (->> (api/readable (metabot.db/cards-for-table table-id))
                         (mapv present-card))
         ;; SQL-narrow transforms by source_database_id (a transform can only reference
         ;; tables in its source DB). Pull `:source` in the same select to extract source
@@ -1015,8 +1008,7 @@
         dashcards    (metabot.db/dashcards dashboard-id)
         card-ids     (into #{} (keep :card_id) dashcards)
         readable     (when (seq card-ids)
-                       (->> (t2/hydrate (metabot.db/unarchived-card-summaries card-ids) :can_read)
-                            (filter :can_read)
+                       (->> (api/readable (metabot.db/unarchived-card-summaries card-ids))
                             (u/index-by :id)))
         ;; An action button's uri points at its backing model, which [[list-result]]'s curation filter can't see
         ;; through, so under [[shared/curated-only?]] only curated models keep their uri.

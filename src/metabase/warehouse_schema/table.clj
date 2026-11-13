@@ -14,7 +14,7 @@
 
 (defn- nil-if-unreadable
   [instance]
-  (when (and instance (mi/can-read? (t2/hydrate instance :can_read)))
+  (when (and instance (:can_read (t2/hydrate instance :can_read)))
     instance))
 
 (defn present-table

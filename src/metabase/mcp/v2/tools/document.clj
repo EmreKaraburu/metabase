@@ -79,7 +79,7 @@
   (if (= "user" model)
     (or (= (:id row) api/*current-user-id*)
         (not (perms/sandboxed-or-impersonated-user?)))
-    (mi/can-read? (t2/hydrate row :can_read))))
+    (:can_read (t2/hydrate row :can_read))))
 
 (defn- visible-user-rows
   "The `:model/User` rows among `ids` whose names the current user may see: the mention picker's
@@ -222,7 +222,7 @@
           (let [card (get cards id)]
             (when-not (and card
                            (or (and document-id (= document-id (:document_id card)))
-                               (mi/can-read? (t2/hydrate card :can_read))))
+                               (:can_read (t2/hydrate card :can_read))))
               (common/throw-not-found :model/Card id))))))))
 
 (defn- body-projection

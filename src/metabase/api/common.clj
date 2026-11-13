@@ -376,6 +376,14 @@
 
 ;;; ---------------------------------------- PERMISSIONS CHECKING HELPER FNS -----------------------------------------
 
+(defn readable
+  "The rows among `rows`, all of one model, that the current user can read, with `:can_read` hydrated for them in one
+  batch and not kept on the result."
+  [rows]
+  (into []
+        (comp (filter :can_read) (map #(dissoc % :can_read)))
+        (t2/hydrate rows :can_read)))
+
 (defn read-check
   "Check whether we can read an existing `obj`, or `entity` with `id`. If the object doesn't exist, throw a 404; if we
   don't have proper permissions, throw a 403. This will fetch the object if it was not already fetched, hydrates its
@@ -383,7 +391,7 @@
   ([obj]
    (check-404 obj)
    (try
-     (check-403 (mi/can-read? (t2/hydrate obj :can_read)))
+     (check-403 (:can_read (t2/hydrate obj :can_read)))
      (catch clojure.lang.ExceptionInfo e
        (log/errorf "Read permissions failure: %s" (ex-message e))
        (events/publish-event! :event/read-permission-failure {:user-id    *current-user-id*
@@ -405,7 +413,7 @@
   ([obj]
    (check-404 obj)
    (try
-     (check-403 (mi/can-write? (t2/hydrate obj :can_write)))
+     (check-403 (:can_write (t2/hydrate obj :can_write)))
      (catch clojure.lang.ExceptionInfo e
        (events/publish-event! :event/write-permission-failure {:user-id *current-user-id*
                                                                :object obj})

@@ -328,7 +328,7 @@
                 (testing "Should not be able to run the child Card due to Block permissions"
                   (mt/with-test-user :rasta
                     (is (mi/can-read? parent-card))
-                    (is (mi/can-read? collection))
+                    (is (mi/can-read? (t2/hydrate collection :can_read)))
                     (is (mi/can-read? child-card)))
                   (is (thrown-with-msg?
                        clojure.lang.ExceptionInfo
@@ -367,7 +367,7 @@
                 (testing "Should STILL not be able to do it even without token"
                   (mt/with-test-user :rasta
                     (is (mi/can-read? parent-card))
-                    (is (mi/can-read? collection))
+                    (is (mi/can-read? (t2/hydrate collection :can_read)))
                     (is (mi/can-read? child-card)))
                   (is (thrown-with-msg?
                        clojure.lang.ExceptionInfo

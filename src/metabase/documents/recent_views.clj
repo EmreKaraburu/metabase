@@ -34,13 +34,13 @@
 (defmethod activity-feed/fill-recent-view-info :document
   [{:keys [_model model_id timestamp model_object]}]
   (when-let [document (and
-                       (mi/can-read? (t2/hydrate model_object :can_read))
+                       (:can_read (t2/hydrate model_object :can_read))
                        (parent-collection-valid? model_object)
                        (elide-archived model_object))]
     {:id model_id
      :name (:name document)
      :description ""
      :model :document
-     :can_write (mi/can-write? (t2/hydrate document :can_write))
+     :can_write (:can_write (t2/hydrate document :can_write))
      :timestamp (str timestamp)
      :parent_collection (fill-parent-coll document)}))

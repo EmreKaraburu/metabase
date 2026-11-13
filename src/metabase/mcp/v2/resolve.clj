@@ -167,9 +167,8 @@
   [ids]
   (when (seq ids)
     (into {}
-          (comp (filter :can_read)
-                (map (juxt :id :name)))
-          (t2/hydrate (mcp.db/collections-for-read-check ids) :can_read))))
+          (comp (map (juxt :id :name)))
+          (api/readable (mcp.db/collections-for-read-check ids)))))
 
 (defn collection-path
   "The display path of the collection with `collection-id` — ancestor names joined with `/`, ending

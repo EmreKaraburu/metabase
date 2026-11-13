@@ -460,7 +460,7 @@
    (:can_read collection))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
-   (mi/can-read? (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_read))))
+   (:can_read (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_read))))
 
 (defmethod mi/can-write? :model/Collection
   ([collection]
@@ -468,7 +468,7 @@
    (:can_write collection))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
-   (mi/can-write? (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_write))))
+   (:can_write (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_write))))
 
 (defn- root-collection-permission-at-least?
   "Whether the current user has `permission` or more on `root`, a root Collection, which is open to everyone in the
@@ -1693,7 +1693,7 @@
      (and (some? new-parent) (not (:archived new-parent))))
     (if (contains? updates :parent_id)
       (api/check-403
-       (and (mi/can-write? (t2/hydrate new-parent :can_write))
+       (and (:can_write (t2/hydrate new-parent :can_write))
             (perms/set-has-full-permissions-for-set?
              @api/*current-user-permissions-set*
              (perms-for-unarchiving collection))))
