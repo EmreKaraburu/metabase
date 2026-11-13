@@ -339,7 +339,9 @@
                                        not-empty
                                        (->> (lib-be/normalize-query metadata-provider))
                                        lib/primary-source-card-id)]
-         {:source-card-ids #{source-card-id}}
+         (do
+           (card-instance source-card-id)
+           {:source-card-ids #{source-card-id}})
          ;; otherwise if there's no source card then calculate perms based on the Tables referenced in the query
          (resolved-source-ids->required-perms
           (or resolved-source-ids
