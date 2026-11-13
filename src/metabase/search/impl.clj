@@ -417,34 +417,42 @@
    :model/Table     [:can-query? :can-write?]
    :model/Segment   [:can-read? :can-write?]
    :model/Measure   [:can-read? :can-write?]
-   :model/Database  [:can-read? :can-write?]})
+   :model/Database  [:can-read?]})
+
+(defn- collection-check-answers
+  "The `:can-write?` answer of each Collection with `collection-ids`, keyed by model and id, from the columns the check
+  reads, which a search result lacks."
+  [collection-ids]
+  (into {}
+        (map (fn [collection]
+               [[:model/Collection (:id collection)] {:can-write? (boolean (mi/can-write? collection))}]))
+        (when (seq collection-ids)
+          (t2/hydrate (search.db/collection-permission-rows collection-ids) :can-write?))))
+
+(defn- model-check-answers
+  "The [[hydrated-checks]] answers of `results`, keyed by model and id, leaving `:can-write?` out without `write?`."
+  [write? results]
+  (into {}
+        (mapcat (fn [[model rows]]
+                  (when-let [checks (not-empty (cond->> (get hydrated-checks model)
+                                                 (not write?) (remove #{:can-write?})))]
+                    (for [row (apply t2/hydrate
+                                     (cond->> rows
+                                       (= model :model/Table) (map #(assoc % :db_id (:database_id %))))
+                                     checks)]
+                      [[model (:id row)] (select-keys (meta row) checks)]))))
+        (group-by t2/model results)))
 
 (defn- hydrate-checks
   "Hydrates the checks of `results` that their permission checks and `:can_write` read, answered together for the user
-  of `search-ctx`: per model its [[hydrated-checks]], and `:can-write?` on Collections from the columns the check
-  reads, which a search result lacks. Without `write?`, `:can-write?` is left out."
+  of `search-ctx`: per model its [[hydrated-checks]], and `:can-write?` on Collections. Without `write?`, `:can-write?`
+  is left out."
   [search-ctx write? results]
   (let [results        (vec results)
         collection-ids (when write?
                          (into [] (comp (filter #(t2/instance-of? :model/Collection %)) (map :id) (distinct)) results))
         answers        (with-search-user search-ctx
-                         (into (if (seq collection-ids)
-                                 (into {}
-                                       (map (fn [collection]
-                                              [[:model/Collection (:id collection)]
-                                               {:can-write? (boolean (mi/can-write? collection))}]))
-                                       (t2/hydrate (search.db/collection-permission-rows collection-ids) :can-write?))
-                                 {})
-                               (mapcat (fn [[model rows]]
-                                         (when-let [checks (not-empty (cond->> (get hydrated-checks model)
-                                                                         (not write?) (remove #{:can-write?})))]
-                                           (for [row (apply t2/hydrate
-                                                            (cond->> rows
-                                                              (= model :model/Table)
-                                                              (map #(assoc % :db_id (:database_id %))))
-                                                            checks)]
-                                             [[model (:id row)] (select-keys (meta row) checks)]))))
-                               (group-by t2/model results)))]
+                         (merge (collection-check-answers collection-ids) (model-check-answers write? results)))]
     (map #(if-let [answer (get answers [(t2/model %) (:id %)])]
             (vary-meta % merge answer)
             %)
