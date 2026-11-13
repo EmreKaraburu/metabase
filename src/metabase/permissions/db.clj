@@ -705,16 +705,18 @@
                     :where  [:= :user_id user-id]})
 
 (defn- collection-rows-clause
-  "Whether a group of the user with `user-id` holds the permission row of the Collection aliased `perms_collection` for
-  `permission-level`, by its object path: `/collection/<id>/` for write, and also `/collection/<id>/read/` for read."
+  "Whether a group of the user with `user-id` holds a permission row of the Collection aliased `perms_collection` for
+  `permission-level`: a `read-and-write` one for write, and also a `read` one for read, looked up by the Collection id
+  the row carries."
   [user-id permission-level]
-  (let [path (fn [suffix] [:concat (h2x/literal "/collection/") :perms_collection.id (h2x/literal suffix)])]
-    [:exists ^:allow-subquery {:select [1]
-                               :from   [[(t2/table-name :model/Permissions) :perms_row]]
-                               :where  [:and
-                                        [:in :perms_row.object (cond-> [(path "/")]
-                                                                 (= permission-level :read) (conj (path "/read/")))]
-                                        [:in :perms_row.group_id (user-groups-query user-id)]]}]))
+  [:exists ^:allow-subquery {:select [1]
+                             :from   [[(t2/table-name :model/Permissions) :perms_row]]
+                             :where  [:and
+                                      [:= :perms_row.collection_id :perms_collection.id]
+                                      [:= :perms_row.perm_type (h2x/literal :perms/collection-access)]
+                                      [:in :perms_row.perm_value (cond-> [(h2x/literal :read-and-write)]
+                                                                   (= permission-level :read) (conj (h2x/literal :read)))]
+                                      [:in :perms_row.group_id (user-groups-query user-id)]]}])
 
 (defn- own-collection-clause
   "Whether `user` writes the Collection aliased `perms_collection` whatever their groups hold: their personal Collection
