@@ -31,10 +31,10 @@
              {:where    [:and
                          [:in :type (vec collection/library-collection-types)]
                          (perms/visible-collections-filter-clause :collection.id (api/current-user-info) {:include-archived-items    :exclude
-                                                                                                                                                       :include-trash-collection? false
-                                                                                                                                                       :permission-level          :read
-                                                                                                                                                       :archive-operation-id      nil
-                                                                                                                                                       :root-namespace            nil})]
+                                                                                                          :include-trash-collection? false
+                                                                                                          :permission-level          :read
+                                                                                                          :archive-operation-id      nil
+                                                                                                          :root-namespace            nil})]
               :order-by [[:%lower.name :asc]]}))
 
 (mu/defn collection-type

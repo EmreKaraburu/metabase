@@ -42,7 +42,7 @@
      [:in :entity_id ^:allow-subquery {:select [:id]
                                        :from   [(t2/table-name model)]
                                        :where  (coll-pred-fn etype (keyword (str (name (t2/table-name model))
-                                                                                      (if (= etype :collection) ".id" ".collection_id"))))}]]))
+                                                                                 (if (= etype :collection) ".id" ".collection_id"))))}]]))
 
 (def eligible-collection-where
   "The WHERE defining a collection *subject* - the finalized content-diagnostics eligibility set, stated

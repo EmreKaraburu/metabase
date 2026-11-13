@@ -95,7 +95,7 @@
                                             (perms/visible-collections-filter-clause (u/qualified-key table-name :collection_id) {:user-id          user-id
                                                                                                                                   :is-superuser?    (boolean is-superuser?)
                                                                                                                                   :is-data-analyst? (boolean is-data-analyst?)} {:include-archived-items include-archived-items
-                                                                                                                                                                   :root-namespace         root-namespace}))]
+                                                                                                                                                                                 :root-namespace         root-namespace}))]
                       (when-not (and (= model :model/NativeQuerySnippet)
                                      (or (perms/sandboxed-user?)
                                          (not (perms/user-has-any-perms-of-type? user-id :perms/create-queries))))

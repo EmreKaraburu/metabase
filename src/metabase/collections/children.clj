@@ -127,12 +127,12 @@
               (when (seq namespaces)
                 [:in :namespace namespaces])]
              (perms/visible-collections-set-filter-clause :collection.id (api/current-user-info) {:include-archived-items    (if archived
-                                                                                                                                                                            :only
-                                                                                                                                                                            :exclude)
-                                                                                                                                               :include-trash-collection? true
-                                                                                                                                               :permission-level          :read
-                                                                                                                                               :archive-operation-id      nil
-                                                                                                                                               :root-namespace            nil})]
+                                                                                                                               :only
+                                                                                                                               :exclude)
+                                                                                                  :include-trash-collection? true
+                                                                                                  :permission-level          :read
+                                                                                                  :archive-operation-id      nil
+                                                                                                  :root-namespace            nil})]
      ;; Order NULL collection types first so that audit collections are last
      :order-by [[[[:case [:= :authority_level "official"] 0 :else 1]] :asc]
                 [[[:case

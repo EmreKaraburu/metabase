@@ -27,11 +27,11 @@
                                                [:and
                                                 [:not= :model_id nil]
                                                 (perms/visible-collections-filter-clause :action.collection_id (api/current-user-info) {:include-archived-items (if archived :all :exclude)
-                                                                                                                                                                                     :root-namespace         nil})]
+                                                                                                                                        :root-namespace         nil})]
                                                [:and
                                                 [:= :model_id nil]
                                                 (perms/visible-collections-filter-clause :action.collection_id (api/current-user-info) {:include-archived-items (if archived :all :exclude)
-                                                                                                                                                                                     :root-namespace         collection/data-actions-ns})]])]}))
+                                                                                                                                        :root-namespace         collection/data-actions-ns})]])]}))
 
 (mu/defn public-actions
   "The name, id, public uuid, and model id of the unarchived Actions that are publicly shared."
