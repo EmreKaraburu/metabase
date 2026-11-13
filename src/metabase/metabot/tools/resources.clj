@@ -475,7 +475,7 @@
     :location          location
     :authority_level   authority_level
     :is_personal       (boolean personal_owner_id)
-    :can_write         (boolean (mi/can-write? (cond-> coll (not (contains? coll :can_write)) (t2/hydrate :can_write))))
+    :can_write         (boolean (mi/can-write? (t2/hydrate coll :can_write)))
     :description       description
     :uri               (llm-shape/metabase-uri :collection id)}))
 
