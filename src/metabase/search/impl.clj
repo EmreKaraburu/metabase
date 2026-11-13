@@ -436,24 +436,52 @@
         ;; key instead — one extra query per result row.
         (cond-> (t2/instance-of? :model/Card instance) (assoc :document_id nil)))))
 
-(defn- hydrate-collections-can-write
-  "Hydrates `:can-write?` on the Collections among `results`, answered together for the user of `search-ctx` from
-  the columns the check reads."
-  [{:keys [current-user-id current-user-perms]} results]
-  (let [ids       (into [] (comp (filter #(t2/instance-of? :model/Collection %)) (map :id) (distinct)) results)
-        can-write (if (seq ids)
-                    (ensure-current-user-perms-set-is-bound current-user-id current-user-perms
-                                                            (into {} (map (juxt :id mi/can-write?))
-                                                                  (t2/hydrate (search.db/collection-permission-rows ids) :can-write?)))
-                    {})]
-    (map #(cond-> % (t2/instance-of? :model/Collection %) (vary-meta assoc :can-write? (boolean (get can-write (:id %)))))
+(def ^:private hydrated-checks
+  "The checks to hydrate on the search results of each model, which the permission checks and `:can_write` read."
+  {:model/Card      [:can-read? :can-write?]
+   :model/Dashboard [:can-write?]
+   :model/Document  [:can-write?]
+   :model/Table     [:can-query? :can-write?]
+   :model/Segment   [:can-read? :can-write?]
+   :model/Measure   [:can-read? :can-write?]
+   :model/Database  [:can-read? :can-write?]})
+
+(defn- hydrate-checks
+  "Hydrates the checks of `results` that their permission checks and `:can_write` read, answered together for the user
+  of `search-ctx`: per model its [[hydrated-checks]], and `:can-write?` on Collections from the columns the check
+  reads, which a search result lacks. Without `write?`, `:can-write?` is left out."
+  [{:keys [current-user-id current-user-perms]} write? results]
+  (let [results        (vec results)
+        collection-ids (when write?
+                         (into [] (comp (filter #(t2/instance-of? :model/Collection %)) (map :id) (distinct)) results))
+        answers        (ensure-current-user-perms-set-is-bound current-user-id current-user-perms
+                         (into (if (seq collection-ids)
+                                 (into {}
+                                       (map (fn [collection]
+                                              [[:model/Collection (:id collection)]
+                                               {:can-write? (boolean (mi/can-write? collection))}]))
+                                       (t2/hydrate (search.db/collection-permission-rows collection-ids) :can-write?))
+                                 {})
+                               (mapcat (fn [[model rows]]
+                                         (when-let [checks (not-empty (cond->> (get hydrated-checks model)
+                                                                         (not write?) (remove #{:can-write?})))]
+                                           (for [row (apply t2/hydrate
+                                                            (cond->> rows
+                                                              (= model :model/Table)
+                                                              (map #(assoc % :db_id (:database_id %))))
+                                                            checks)]
+                                             [[model (:id row)] (select-keys (meta row) checks)]))))
+                               (group-by t2/model results)))]
+    (map #(if-let [answer (get answers [(t2/model %) (:id %)])]
+            (vary-meta % merge answer)
+            %)
          results)))
 
 (defn check-result-permissions
   "Run the post-query permission check on a single raw engine result map (the rehydrated shape an engine's
   `results` produces). Returns a boolean. Public for the search debug API."
   [search-ctx result]
-  (check-permissions-for-model search-ctx (first (hydrate-collections-can-write search-ctx [(normalize-result result)]))))
+  (check-permissions-for-model search-ctx (first (hydrate-checks search-ctx (boolean (:archived? search-ctx)) [(normalize-result result)]))))
 
 (defn- add-can-write [search-ctx row]
   (cond
@@ -512,7 +540,7 @@
                             (:include-metadata? search-ctx) (add-metadata)
                             (:model-ancestors? search-ctx) (add-dataset-collection-hierarchy)
                             true (add-collection-effective-location)
-                            true (hydrate-collections-can-write search-ctx)
+                            true (hydrate-checks search-ctx true)
                             true (map (partial add-can-write search-ctx))
                             true (map serialize)
                             ;; Realize within the enclosing tracing span so hydration and
@@ -547,9 +575,7 @@
                            (take search.config/*db-max-results*)
                            (map normalize-result)
                            (partition-all 500)
-                           (mapcat (if (:archived? search-ctx)
-                                     (partial hydrate-collections-can-write search-ctx)
-                                     identity))
+                           (mapcat (partial hydrate-checks search-ctx (boolean (:archived? search-ctx))))
                            (filter (partial check-permissions-for-model search-ctx))
                            (map (partial normalize-result-more search-ctx))
                            (keep #(search.engine/score scoring-ctx %)))]
