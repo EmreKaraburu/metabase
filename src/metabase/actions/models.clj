@@ -37,7 +37,6 @@
 
 (doto :model/Action
   (derive :metabase/model)
-  (derive :perms/use-parent-collection-perms)
   (derive :hook/entity-id)
   (derive :hook/timestamped?)
   (derive :hook/dependencies))
@@ -292,40 +291,80 @@
       (when collection-id
         (api/check-404 (actions.db/collection-exists? collection-id))))))
 
-(defmethod mi/perms-objects-set :model/Action
-  [{model-id :model_id, collection-id :collection_id, :as action} read-or-write]
-  (cond
-    model-id
-    ((get-method mi/perms-objects-set :perms/use-parent-collection-perms) action read-or-write)
-
-    (and (= read-or-write :write)
-         (nil? collection-id)
-         (not (if-let [id (:id action)]
-                (remote-sync/can-write? :model/Action id)
-                (not (remote-sync/read-only?)))))
-    #{"___no-remote-sync-access"}
-
-    (nil? collection-id)
-    (perms/perms-objects-set-for-parent-collection collection/data-actions-ns nil read-or-write)
-
-    :else
-    ((get-method mi/perms-objects-set :perms/use-parent-collection-perms) action read-or-write)))
+(defn- model-less-root?
+  "Whether `action` has neither a model nor a Collection, which puts it in the root of the data actions namespace."
+  [{model-id :model_id, collection-id :collection_id}]
+  (and (nil? model-id) (nil? collection-id)))
 
 (defn- collection-writable?
-  "Whether the current user can write the Collection `action` goes in."
+  "Whether the current user can write the Collection `action` goes in: its own or its model's, the default root for
+  an Action of a model outside one, and otherwise the data actions root, whose Actions remote sync keeps read-only on
+  a read-only instance."
   [{model-id :model_id, :as action}]
-  (let [action (assoc action :collection_id (effective-collection-id action))]
-    (if model-id
-      ((get-method mi/can-create? :perms/use-parent-collection-perms) :model/Action action)
-      (mi/current-user-has-full-permissions? ((get-method mi/perms-objects-set :model/Action) action :write)))))
+  (let [collection-id (effective-collection-id action)]
+    (if (or model-id collection-id)
+      (collection/can-write-collection-or-root? collection-id {:root-namespace nil})
+      (and (collection/can-write-collection-or-root? nil {:root-namespace collection/data-actions-ns})
+           (not (remote-sync/read-only?))))))
+
+(defn- check-can-read-keys
+  "Throws unless `action` has the columns its `:can-read?` and `:can-write?` hydrations read."
+  [action]
+  (api/check-500 (contains? action :collection_id) "No :collection_id is set for an Action.")
+  (api/check-500 (contains? action :model_id) "No :model_id is set for an Action."))
+
+(methodical/defmethod t2/batched-hydrate [:model/Action :can-read?]
+  "Whether the current user reads each of `actions`, as the content of its Collection, or of the data actions root for
+  an Action with neither a model nor a Collection."
+  [_model _k actions]
+  (run! #(when % (check-can-read-keys %)) actions)
+  (let [rows          (remove nil? actions)
+        readable      (collection/content-readable-collection-ids (map :collection_id (remove model-less-root? rows))
+                                                                  {:root-namespace nil})
+        root-readable (delay (contains? (collection/content-readable-collection-ids
+                                         [nil] {:root-namespace collection/data-actions-ns})
+                                        nil))]
+    (for [action actions]
+      (when action
+        (vary-meta action assoc :can-read? (boolean (if (model-less-root? action)
+                                           @root-readable
+                                           (contains? readable (:collection_id action)))))))))
+
+(methodical/defmethod t2/batched-hydrate [:model/Action :can-write?]
+  "Whether the current user writes each of `actions`: a superuser, writing its Collection's content, or, for an Action
+  with neither a model nor a Collection, the data actions root on an instance remote sync doesn't keep read-only."
+  [_model _k actions]
+  (run! #(when % (check-can-read-keys %)) actions)
+  (let [rows          (remove nil? actions)
+        superuser?    (mi/superuser?)
+        writable      (if superuser?
+                        (collection/content-writable-collection-ids (map :collection_id (remove model-less-root? rows))
+                                                                    {:root-namespace nil})
+                        #{})
+        root-writable (delay (and (not (remote-sync/read-only?))
+                                  (contains? (collection/content-writable-collection-ids
+                                              [nil] {:root-namespace collection/data-actions-ns})
+                                             nil)))]
+    (for [action actions]
+      (when action
+        (vary-meta action assoc :can-write? (boolean (and superuser?
+                                               (if (model-less-root? action)
+                                                 @root-writable
+                                                 (contains? writable (:collection_id action))))))))))
+
+(defmethod mi/can-read? :model/Action
+  ([action]
+   (api/check-500 (some? (:can-read? (meta action))) "No :can-read? is hydrated on an Action.")
+   (:can-read? (meta action)))
+  ([_model pk]
+   (mi/can-read? (t2/hydrate (api/check-404 (actions.db/action pk)) :can-read?))))
 
 (defmethod mi/can-write? :model/Action
   ([action]
-   (and (mi/superuser?)
-        (mi/current-user-has-full-permissions? :write action)))
-  ([model pk]
-   (and (mi/superuser?)
-        (mi/current-user-has-full-permissions? :write model pk))))
+   (api/check-500 (some? (:can-write? (meta action))) "No :can-write? is hydrated on an Action.")
+   (:can-write? (meta action)))
+  ([_model pk]
+   (mi/can-write? (t2/hydrate (api/check-404 (actions.db/action pk)) :can-write?))))
 
 (defmethod mi/can-create? :model/Action
   [_model action]
@@ -661,7 +700,7 @@
          actions)))
 
 (methodical/defmethod t2.hydrate/batched-hydrate [:model/DashboardCard :dashcard/action]
-  "Hydrates DashboardCard actions, with `:can_write` and `:database_enabled_actions` from the action's database."
+  "Hydrates DashboardCard actions, with `:can-write?` and `:database_enabled_actions` from the action's database."
   [_model _k dashcards]
   (let [actions-by-id
         (when-let [action-ids (seq (keep :action_id dashcards))]

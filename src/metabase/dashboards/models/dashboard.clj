@@ -3,7 +3,6 @@
    [clojure.set :as set]
    [medley.core :as m]
    [metabase.api.common :as api]
-   [metabase.audit-app.core :as audit]
    [metabase.collections.models.collection :as collection]
    [metabase.config.core :as config]
    [metabase.dashboards.db :as dashboards.db]
@@ -17,7 +16,6 @@
    [metabase.parameters.core :as parameters]
    [metabase.parameters.params :as params]
    [metabase.parameters.schema :as parameters.schema]
-   [metabase.permissions.core :as perms]
    [metabase.public-sharing.core :as public-sharing]
    [metabase.queries.core :as queries]
    [metabase.queries.schema :as queries.schema]
@@ -47,25 +45,52 @@
 
 (doto :model/Dashboard
   (derive :metabase/model)
-  (derive :perms/use-parent-collection-perms)
   (derive :hook/timestamped?)
   (derive :hook/entity-id)
   (derive :hook/dependencies))
 
-(defmethod mi/can-write? :model/Dashboard
-  ([instance]
-   ;; Dashboards in audit collection should be read only
-   (and (not (and
-              ;; We want to make sure there's an existing audit collection before doing the equality check below.
-              ;; If there is no audit collection, this will be nil:
-              (some? (:id (audit/default-audit-collection)))
-              ;; Is a direct descendant of audit collection
-              (= (:collection_id instance) (:id (audit/default-audit-collection)))))
-        (mi/current-user-has-full-permissions? (mi/perms-objects-set instance :write))))
-  ([_ pk]
-   (mi/can-write? (t2/hydrate (dashboards.db/dashboard pk) :can-write?))))
+(defn- check-can-read-keys
+  "Throws unless `dashboard` has the columns its `:can-read?` and `:can-write?` hydrations read."
+  [dashboard]
+  (api/check-500 (contains? dashboard :collection_id) "No :collection_id is set for a Dashboard."))
 
-(perms/define-collection-based-visibility! :model/Dashboard)
+(methodical/defmethod t2/batched-hydrate [:model/Dashboard :can-read?]
+  "Whether the current user reads each of `dashboards`, as the content of its Collection."
+  [_model _k dashboards]
+  (run! #(when % (check-can-read-keys %)) dashboards)
+  (let [readable (collection/content-readable-collection-ids (map :collection_id (remove nil? dashboards))
+                                                             {:root-namespace nil})]
+    (for [dashboard dashboards]
+      (when dashboard
+        (vary-meta dashboard assoc :can-read? (contains? readable (:collection_id dashboard)))))))
+
+(methodical/defmethod t2/batched-hydrate [:model/Dashboard :can-write?]
+  "Whether the current user writes each of `dashboards`, as the content of its Collection."
+  [_model _k dashboards]
+  (run! #(when % (check-can-read-keys %)) dashboards)
+  (let [writable (collection/content-writable-collection-ids (map :collection_id (remove nil? dashboards))
+                                                             {:root-namespace nil})]
+    (for [dashboard dashboards]
+      (when dashboard
+        (vary-meta dashboard assoc :can-write? (contains? writable (:collection_id dashboard)))))))
+
+(defmethod mi/can-read? :model/Dashboard
+  ([dashboard]
+   (api/check-500 (some? (:can-read? (meta dashboard))) "No :can-read? is hydrated on a Dashboard.")
+   (:can-read? (meta dashboard)))
+  ([_model pk]
+   (mi/can-read? (t2/hydrate (api/check-404 (dashboards.db/dashboard pk)) :can-read?))))
+
+(defmethod mi/can-write? :model/Dashboard
+  ([dashboard]
+   (api/check-500 (some? (:can-write? (meta dashboard))) "No :can-write? is hydrated on a Dashboard.")
+   (:can-write? (meta dashboard)))
+  ([_model pk]
+   (mi/can-write? (t2/hydrate (api/check-404 (dashboards.db/dashboard pk)) :can-write?))))
+
+(defmethod mi/can-create? :model/Dashboard
+  [_model {collection-id :collection_id}]
+  (collection/can-write-collection-or-root? collection-id {:root-namespace nil}))
 
 (defmethod mi/non-timestamped-fields :model/Dashboard [_]
   #{:last_viewed_at})

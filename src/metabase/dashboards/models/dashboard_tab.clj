@@ -1,6 +1,7 @@
 (ns metabase.dashboards.models.dashboard-tab
   (:require
    [medley.core :as m]
+   [metabase.api.common :as api]
    [metabase.dashboards.db :as dashboards.db]
    [metabase.dashboards.models.dashboard-card :as dashboard-card]
    [metabase.dashboards.schema :as dashboards.schema]
@@ -18,8 +19,6 @@
 
 (doto :model/DashboardTab
   (derive :metabase/model)
-  (derive ::mi/read-policy.full-perms-for-perms-set)
-  (derive ::mi/write-policy.full-perms-for-perms-set)
   (derive :hook/timestamped?)
   (derive :hook/entity-id)
   (derive :hook/dependencies))
@@ -45,11 +44,43 @@
     (for [{:keys [id] :as tab} tabs]
       (assoc tab :cards (get tab-id->dashcards id [])))))
 
-(defmethod mi/perms-objects-set :model/DashboardTab
-  [dashtab read-or-write]
-  (let [dashboard (or (:dashboard dashtab)
-                      (dashboards.db/dashboard (:dashboard_id dashtab)))]
-    (mi/perms-objects-set dashboard read-or-write)))
+(defn- dashboard-permissions
+  "Whether the current user passes `check`, `mi/can-read?` or `mi/can-write?`, on the Dashboard of each of `tabs`, by
+  Dashboard id, the Dashboards hydrated with `k` together."
+  [k check tabs]
+  (run! #(when % (api/check-500 (contains? % :dashboard_id) "No :dashboard_id is set for a DashboardTab.")) tabs)
+  (let [ids (into [] (comp (remove nil?) (keep :dashboard_id) (distinct)) tabs)]
+    (if (seq ids)
+      (into {} (map (juxt :id check)) (t2/hydrate (dashboards.db/dashboard-collection-rows ids) k))
+      {})))
+
+(methodical/defmethod t2/batched-hydrate [:model/DashboardTab :can-read?]
+  [_model k tabs]
+  (let [permissions (dashboard-permissions k mi/can-read? tabs)]
+    (for [tab tabs]
+      (when tab
+        (vary-meta tab assoc :can-read? (boolean (get permissions (:dashboard_id tab))))))))
+
+(methodical/defmethod t2/batched-hydrate [:model/DashboardTab :can-write?]
+  [_model k tabs]
+  (let [permissions (dashboard-permissions k mi/can-write? tabs)]
+    (for [tab tabs]
+      (when tab
+        (vary-meta tab assoc :can-write? (boolean (get permissions (:dashboard_id tab))))))))
+
+(defmethod mi/can-read? :model/DashboardTab
+  ([tab]
+   (api/check-500 (some? (:can-read? (meta tab))) "No :can-read? is hydrated on a DashboardTab.")
+   (:can-read? (meta tab)))
+  ([_model pk]
+   (mi/can-read? (t2/hydrate (api/check-404 (dashboards.db/dashboard-tab pk)) :can-read?))))
+
+(defmethod mi/can-write? :model/DashboardTab
+  ([tab]
+   (api/check-500 (some? (:can-write? (meta tab))) "No :can-write? is hydrated on a DashboardTab.")
+   (:can-write? (meta tab)))
+  ([_model pk]
+   (mi/can-write? (t2/hydrate (api/check-404 (dashboards.db/dashboard-tab pk)) :can-write?))))
 
 ;;; ----------------------------------------------- SERIALIZATION ----------------------------------------------------
 

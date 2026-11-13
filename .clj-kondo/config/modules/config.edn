@@ -677,6 +677,7 @@
                     :model/Dashboard
                     :model/Document
                     :model/Exploration
+                    :model/ModerationReview
                     :model/NativeQuerySnippet
                     :model/Permissions
                     :model/Pulse
@@ -737,9 +738,11 @@
   content-verification
   {:team "UX West"
    :api  #{metabase.content-verification.core metabase.content-verification.init metabase.content-verification.schema}
-   :uses #{app-db
+   :uses #{api
+           app-db
            lib.schema
            models
+           permissions
            users.schema
            util}
    :model-exports #{:model/ModerationReview}
@@ -803,7 +806,6 @@
            analytics
            api
            app-db
-           audit-app
            collections
            content-verification
            embedding
@@ -814,7 +816,6 @@
            models
            parameters
            parameters.schema
-           permissions
            public-sharing
            pulse
            queries
@@ -1249,7 +1250,6 @@
            lib.legacy-mbql
            lib.schema
            models
-           permissions
            query-processor
            search
            sync
@@ -2063,7 +2063,6 @@
            lib.schema
            models
            premium-features
-           remote-sync
            settings
            tracing
            users.schema

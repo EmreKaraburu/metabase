@@ -45,6 +45,12 @@
   [dashboard-id :- ::lib.schema.id/dashboard]
   (t2/select-one :model/Dashboard :id dashboard-id))
 
+(mu/defn dashboard-collection-rows
+  "The Dashboards with `dashboard-ids` narrowed to `:id` and `:collection_id`, the columns their permission hydrations
+  read."
+  [dashboard-ids :- [:sequential ::lib.schema.id/dashboard]]
+  (t2/select [:model/Dashboard :id :collection_id] :id [:in dashboard-ids]))
+
 (mu/defn insert-dashboard!
   "Insert the Dashboard `row` and return the inserted instance."
   [row :- ::dashboards.schema/dashboard.update]

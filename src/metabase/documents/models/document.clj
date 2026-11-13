@@ -47,7 +47,6 @@
 
 (doto :model/Document
   (derive :metabase/model)
-  (derive :perms/use-parent-collection-perms)
   (derive :hook/timestamped?)
   (derive :hook/entity-id)
   (derive :hook/dependencies))
@@ -126,19 +125,50 @@
 ;; can-read?/can-write? compose the collection-permission policy with the content-visibility gate:
 ;; a document's rendered body can embed data the viewer isn't entitled to, so content access can be
 ;; narrower than collection access.
+(defn- check-can-read-keys
+  "Throws unless `document` has the columns its `:can-read?` and `:can-write?` hydrations read."
+  [document]
+  (api/check-500 (contains? document :collection_id) "No :collection_id is set for a Document."))
+
+(methodical/defmethod t2/batched-hydrate [:model/Document :can-read?]
+  "Whether the current user reads each of `documents`, as the content of its Collection."
+  [_model _k documents]
+  (run! #(when % (check-can-read-keys %)) documents)
+  (let [readable (collection/content-readable-collection-ids (map :collection_id (remove nil? documents))
+                                                             {:root-namespace nil})]
+    (for [document documents]
+      (when document
+        (vary-meta document assoc :can-read? (boolean (and (contains? readable (:collection_id document))
+                                             (content-visible? document))))))))
+
+(methodical/defmethod t2/batched-hydrate [:model/Document :can-write?]
+  "Whether the current user writes each of `documents`, as the content of its Collection."
+  [_model _k documents]
+  (run! #(when % (check-can-read-keys %)) documents)
+  (let [writable (collection/content-writable-collection-ids (map :collection_id (remove nil? documents))
+                                                             {:root-namespace nil})]
+    (for [document documents]
+      (when document
+        (vary-meta document assoc :can-write? (boolean (and (contains? writable (:collection_id document))
+                                              (content-visible? document))))))))
+
 (defmethod mi/can-read? :model/Document
-  ([instance]
-   (and (mi/current-user-has-full-permissions? :read instance)
-        (content-visible? instance)))
+  ([document]
+   (api/check-500 (some? (:can-read? (meta document))) "No :can-read? is hydrated on a Document.")
+   (:can-read? (meta document)))
   ([_model pk]
-   (mi/can-read? (t2/hydrate (documents.db/document pk) :can-read?))))
+   (mi/can-read? (t2/hydrate (api/check-404 (documents.db/document pk)) :can-read?))))
 
 (defmethod mi/can-write? :model/Document
-  ([instance]
-   (and (mi/current-user-has-full-permissions? :write instance)
-        (content-visible? instance)))
+  ([document]
+   (api/check-500 (some? (:can-write? (meta document))) "No :can-write? is hydrated on a Document.")
+   (:can-write? (meta document)))
   ([_model pk]
-   (mi/can-write? (t2/hydrate (documents.db/document pk) :can-write?))))
+   (mi/can-write? (t2/hydrate (api/check-404 (documents.db/document pk)) :can-write?))))
+
+(defmethod mi/can-create? :model/Document
+  [_model {collection-id :collection_id}]
+  (collection/can-write-collection-or-root? collection-id {:root-namespace nil}))
 
 (def DocumentName
   "Validations for the name of a document"

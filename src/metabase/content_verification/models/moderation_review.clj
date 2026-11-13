@@ -1,8 +1,10 @@
 (ns metabase.content-verification.models.moderation-review
   (:require
+   [metabase.api.common :as api]
    [metabase.content-verification.db :as content-verification.db]
    [metabase.content-verification.impl :as moderation]
    [metabase.models.interface :as mi]
+   [metabase.permissions.core :as perms]
    [metabase.util.malli :as mu]
    [metabase.util.malli.schema :as ms]
    [methodical.core :as methodical]
@@ -31,10 +33,48 @@
 
 (doto :model/ModerationReview
   (derive :metabase/model)
-  ;;; TODO: this is wrong, but what should it be?
-  (derive :perms/use-parent-collection-perms)
   (derive :hook/timestamped?)
   (derive :hook/search-index))
+
+(defn- root-collection-permission-at-least?
+  "Whether the current user has `permission` or more on the default root Collection, which a ModerationReview, having
+  no Collection of its own, is checked against."
+  [permission]
+  (perms/collection-permission-at-least?
+   (get (perms/collection-permissions-for-user (api/current-user-info) [nil] {:root-namespace nil}) nil)
+   permission))
+
+(methodical/defmethod t2/batched-hydrate [:model/ModerationReview :can-read?]
+  [_model _k reviews]
+  (let [can-read (root-collection-permission-at-least? :read)]
+    (for [review reviews]
+      (when review
+        (vary-meta review assoc :can-read? can-read)))))
+
+(methodical/defmethod t2/batched-hydrate [:model/ModerationReview :can-write?]
+  [_model k reviews]
+  (let [can-write (root-collection-permission-at-least? :read-and-write)]
+    (for [review reviews]
+      (when review
+        (assoc review k can-write)))))
+
+(defmethod mi/can-read? :model/ModerationReview
+  ([review]
+   (api/check-500 (some? (:can-read? (meta review))) "No :can-read? is hydrated on a ModerationReview.")
+   (:can-read? (meta review)))
+  ([_model _pk]
+   (root-collection-permission-at-least? :read)))
+
+(defmethod mi/can-write? :model/ModerationReview
+  ([review]
+   (api/check-500 (some? (:can-write? (meta review))) "No :can-write? is hydrated on a ModerationReview.")
+   (:can-write? (meta review)))
+  ([_model _pk]
+   (root-collection-permission-at-least? :read-and-write)))
+
+(defmethod mi/can-create? :model/ModerationReview
+  [_model _review]
+  (root-collection-permission-at-least? :read-and-write))
 
 (t2/deftransforms :model/ModerationReview
   {:moderated_item_type mi/transform-keyword})

@@ -1,7 +1,7 @@
 (ns metabase.dashboards.models.dashboard-card
   (:require
-   [clojure.set :as set]
    [medley.core :as m]
+   [metabase.api.common :as api]
    [metabase.dashboards.db :as dashboards.db]
    [metabase.dashboards.schema :as dashboards.schema]
    [metabase.lib.core :as lib]
@@ -22,8 +22,6 @@
 
 (doto :model/DashboardCard
   (derive :metabase/model)
-  (derive ::mi/read-policy.full-perms-for-perms-set)
-  (derive ::mi/write-policy.full-perms-for-perms-set)
   (derive :hook/timestamped?)
   (derive :hook/entity-id)
   (derive :hook/dependencies)
@@ -85,16 +83,43 @@
 
 (declare series)
 
-;;; Return the set of permissions required to `read-or-write` this DashboardCard. If `:card` and `:series` are already
-;;; hydrated this method doesn't need to make any DB calls.
-(defmethod mi/perms-objects-set :model/DashboardCard
-  [dashcard read-or-write]
-  (let [card   (or (:card dashcard)
-                   (dashboards.db/card-query-columns (u/the-id (:card_id dashcard))))
-        series (or (:series dashcard)
-                   (series dashcard))]
-    (apply set/union (mi/perms-objects-set card read-or-write) (for [series-card series]
-                                                                 (mi/perms-objects-set series-card read-or-write)))))
+(defn- dashboard-permissions
+  "Whether the current user passes `check`, `mi/can-read?` or `mi/can-write?`, on the Dashboard of each of `dashcards`,
+  by Dashboard id, the Dashboards hydrated with `k` together."
+  [k check dashcards]
+  (run! #(when % (api/check-500 (contains? % :dashboard_id) "No :dashboard_id is set for a DashboardCard.")) dashcards)
+  (let [ids (into [] (comp (remove nil?) (keep :dashboard_id) (distinct)) dashcards)]
+    (if (seq ids)
+      (into {} (map (juxt :id check)) (t2/hydrate (dashboards.db/dashboard-collection-rows ids) k))
+      {})))
+
+(methodical/defmethod t2/batched-hydrate [:model/DashboardCard :can-read?]
+  [_model k dashcards]
+  (let [permissions (dashboard-permissions k mi/can-read? dashcards)]
+    (for [dashcard dashcards]
+      (when dashcard
+        (vary-meta dashcard assoc :can-read? (boolean (get permissions (:dashboard_id dashcard))))))))
+
+(methodical/defmethod t2/batched-hydrate [:model/DashboardCard :can-write?]
+  [_model k dashcards]
+  (let [permissions (dashboard-permissions k mi/can-write? dashcards)]
+    (for [dashcard dashcards]
+      (when dashcard
+        (vary-meta dashcard assoc :can-write? (boolean (get permissions (:dashboard_id dashcard))))))))
+
+(defmethod mi/can-read? :model/DashboardCard
+  ([dashcard]
+   (api/check-500 (some? (:can-read? (meta dashcard))) "No :can-read? is hydrated on a DashboardCard.")
+   (:can-read? (meta dashcard)))
+  ([_model pk]
+   (mi/can-read? (t2/hydrate (api/check-404 (dashboards.db/dashcard pk)) :can-read?))))
+
+(defmethod mi/can-write? :model/DashboardCard
+  ([dashcard]
+   (api/check-500 (some? (:can-write? (meta dashcard))) "No :can-write? is hydrated on a DashboardCard.")
+   (:can-write? (meta dashcard)))
+  ([_model pk]
+   (mi/can-write? (t2/hydrate (api/check-404 (dashboards.db/dashcard pk)) :can-write?))))
 
 (defn from-parsed-json
   "Convert a map with dashboard-card into a Toucan instance assuming it came from parsed JSON and the map keys have
