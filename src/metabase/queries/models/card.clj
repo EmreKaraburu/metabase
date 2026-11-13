@@ -319,8 +319,7 @@
   (mi/instances-with-hydrated-data
    cards k
    #(group-by :source_card_id
-              (->> (queries.db/metric-cards-for-source-cards (map :id cards))
-                   (#(t2/hydrate % :can_read))
+              (->> (t2/hydrate (queries.db/metric-cards-for-source-cards (map :id cards)) :can_read)
                    (filter mi/can-read?)))
    :id))
 

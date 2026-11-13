@@ -28,7 +28,8 @@
    [metabase.query-processor.pipeline :as qp.pipeline]
    [metabase.sql-tools.core :as sql-tools]
    [metabase.util :as u]
-   [metabase.util.quoting :as quoting]))
+   [metabase.util.quoting :as quoting]
+   [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
 
