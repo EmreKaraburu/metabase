@@ -361,12 +361,11 @@
 
 (defn- remote-sync-writable?
   "Whether remote sync leaves `collection` writable: any Collection unless the instance is read-only, and then one
-  that isn't synced, which a library Collection, one of an always-synced namespace and one flagged
-  `is_remote_synced` are."
-  [{collection-type :type, collection-namespace :namespace, :keys [is_remote_synced]}]
+  that isn't synced, which one of an always-synced namespace and one flagged `is_remote_synced`, as every
+  Collection under a synced top-level one is, are."
+  [{collection-namespace :namespace, :keys [is_remote_synced]}]
   (not (and (remote-sync/read-only?)
-            (or (contains? library-collection-types collection-type)
-                (contains? remote-synced-namespaces (some-> collection-namespace keyword))
+            (or (contains? remote-synced-namespaces (some-> collection-namespace keyword))
                 (boolean is_remote_synced)))))
 
 (defn- audit-collection-hidden?
