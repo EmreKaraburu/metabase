@@ -781,6 +781,13 @@
             (testing "user keeps only entities in readable Collections"
               (mt/with-test-user :rasta
                 (is (= ["1:123"] (map :id (#'semantic.index/filter-read-permitted docs))))))))
+        (testing "dashboard docs without rows are filtered by Collection id of their index rows"
+          (mt/with-test-user :rasta
+            (is (= [1]
+                   (map :id (#'semantic.index/filter-read-permitted
+                             [{:id 1 :model "dashboard" :collection_id readable-coll-id}
+                              {:id 2 :model "dashboard" :collection_id unreadable-coll-id}
+                              {:id 3 :model "dashboard" :collection_id nil}]))))))
         (testing "card, metric and dataset docs are filtered by their rows"
           (doseq [[model card-type] [["card" :question] ["metric" :metric] ["dataset" :model]]]
             (testing (str "model=" model)

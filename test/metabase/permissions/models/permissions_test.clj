@@ -319,4 +319,3 @@
           (mt/with-test-user :rasta
             (is (false? (mi/can-write? (t2/hydrate instance :can-write?))))
             (is (false? (mi/can-read? (t2/hydrate instance :can-read?))))))))))
-

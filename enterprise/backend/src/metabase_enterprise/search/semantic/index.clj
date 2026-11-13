@@ -960,9 +960,10 @@
               (cond-> decoded (string? decoded) json/decode+kw)))))
 
 (def ^:private collection-id-only-search-models
-  "Search-models read exactly when the Collection id their index row carries is readable: an indexed entity has no row
-  of its own to check, and its `:collection_id` is its model Card's."
-  #{"indexed-entity"})
+  "Search-models read exactly when the Collection id their index row carries is readable: a Dashboard, which is read as
+  the content of its Collection, and an indexed entity, which has no row of its own to check and whose
+  `:collection_id` is its model Card's."
+  #{"dashboard" "indexed-entity"})
 
 (defn- filter-read-permitted
   "Returns the subset of `docs` the current user can read: the docs of [[collection-id-only-search-models]] by the
