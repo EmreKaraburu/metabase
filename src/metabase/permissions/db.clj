@@ -712,31 +712,25 @@
                     :from   [(t2/table-name :model/PermissionsGroupMembership)]
                     :where  [:= :user_id [:inline user-id]]})
 
-(defn- user-collection-objects-query
-  "The objects of the Collection permission rows of the groups of the user with `user-id`."
-  [user-id]
-  ^:allow-subquery {:select [:perms_row.object]
-                    :from   [[(t2/table-name :model/Permissions) :perms_row]]
-                    :where  [:and
-                             [:in :perms_row.group_id (user-groups-query user-id)]
-                             [:like :perms_row.object (h2x/literal "/collection/%")]]})
-
 (defn- collection-rows-clause
-  "Whether a group of the user with `user-id` holds the permission row of the Collection aliased `perms_collection` for
-  `permission-level`, by its object path as the permission set reads it: `/collection/<id>/` for write, and also
-  `/collection/<id>/read/` for read. With the `:per-row` `probe` it looks up the rows of each Collection, and with
-  `:set` it matches each Collection against the user's rows, read once."
+  "Whether a group of the user with `user-id` holds a permission row of the Collection aliased `perms_collection` for
+  `permission-level`: a `read-and-write` one for write, and also a `read` one for read, by the Collection id the row
+  carries. With the `:per-row` `probe` it looks up the rows of each Collection, and with `:set` it matches each
+  Collection against the Collections of the user's rows, read once."
   [user-id permission-level probe]
-  (let [path  (fn [suffix] [:concat (h2x/literal "/collection/") :perms_collection.id (h2x/literal suffix)])
-        paths (cond-> [(path "/")]
-                (= permission-level :read) (conj (path "/read/")))]
+  (let [rows-where [:and
+                    [:= :perms_row.perm_type (h2x/literal :perms/collection-access)]
+                    [:in :perms_row.perm_value (cond-> [(h2x/literal :read-and-write)]
+                                                 (= permission-level :read) (conj (h2x/literal :read)))]
+                    [:in :perms_row.group_id (user-groups-query user-id)]]]
     (case probe
       :per-row [:exists ^:allow-subquery {:select [[[:inline 1]]]
                                           :from   [[(t2/table-name :model/Permissions) :perms_row]]
-                                          :where  [:and
-                                                   [:in :perms_row.object paths]
-                                                   [:in :perms_row.group_id (user-groups-query user-id)]]}]
-      :set     (into [:or] (map (fn [p] [:in p (user-collection-objects-query user-id)])) paths))))
+                                          :where  (conj rows-where [:= :perms_row.collection_id :perms_collection.id])}]
+      :set     [:in :perms_collection.id ^:allow-subquery {:select   [:perms_row.collection_id]
+                                                           :from     [[(t2/table-name :model/Permissions) :perms_row]]
+                                                           :where    rows-where
+                                                           :group-by [:perms_row.collection_id]}])))
 
 (defn- own-collection-clause
   "Whether the user of `user` writes the Collection aliased `perms_collection` whatever their groups hold: their personal
