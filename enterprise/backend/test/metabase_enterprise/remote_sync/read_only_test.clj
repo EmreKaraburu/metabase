@@ -29,18 +29,16 @@
                  :model/Collection unsynced {:name "Unsynced" :location "/"}
                  :model/Card       card     {:name "Synced card" :collection_id (:id synced)}
                  :model/Card       other    {:name "Unsynced card" :collection_id (:id unsynced)}]
-    (let [writable-ids #(t2/select-pks-set :model/Card {:where [:and
-                                                                [:in :id [(:id card) (:id other)]]
-                                                                (remote-sync/can-write-filter-clause :model/Card :report_card)]})]
-      (testing "on read-only instance, synced rows can't be written"
-        (remote-sync.tu/with-remote-sync [url :read-only]
-          (is (false? (remote-sync/can-write? :model/Card (:id card))))
-          (is (true? (remote-sync/can-write? :model/Card (:id other))))
-          (is (= #{(:id other)} (writable-ids)))))
-      (testing "on read-write instance, every row can be written"
-        (remote-sync.tu/with-remote-sync [url :read-write]
-          (is (true? (remote-sync/can-write? :model/Card (:id card))))
-          (is (= #{(:id card) (:id other)} (writable-ids))))))))
+    (let [writable-ids #(into #{}
+                              (comp (filter mi/can-write?) (map :id))
+                              (t2/hydrate [card other] :can-write?))]
+      (mt/with-test-user :crowberto
+        (testing "on read-only instance, synced rows can't be written"
+          (remote-sync.tu/with-remote-sync [url :read-only]
+            (is (= #{(:id other)} (writable-ids)))))
+        (testing "on read-write instance, every row can be written"
+          (remote-sync.tu/with-remote-sync [url :read-write]
+            (is (= #{(:id card) (:id other)} (writable-ids)))))))))
 
 (deftest synced-changes-test
   (mt/with-temp [:model/Card card {:name "Card"}]
@@ -88,12 +86,13 @@
 
 (deftest built-in-rows-test
   (let [daily (t2/select-one :model/TransformTag :built_in_type "daily")]
-    (testing "on read-only instance, built-in rows can't be written, though they are not synced"
-      (remote-sync.tu/with-remote-sync [url :read-only]
-        (is (false? (remote-sync/can-write? :model/TransformTag (:id daily))))))
-    (testing "on read-write instance, they can"
-      (remote-sync.tu/with-remote-sync [url :read-write]
-        (is (true? (remote-sync/can-write? :model/TransformTag (:id daily))))))))
+    (mt/with-test-user :crowberto
+      (testing "on read-only instance, built-in rows can't be written, though they are not synced"
+        (remote-sync.tu/with-remote-sync [url :read-only]
+          (is (false? (mi/can-write? (t2/hydrate daily :can-write?))))))
+      (testing "on read-write instance, they can"
+        (remote-sync.tu/with-remote-sync [url :read-write]
+          (is (true? (mi/can-write? (t2/hydrate daily :can-write?)))))))))
 
 (deftest archived-synced-content-stays-read-only-test
   (mt/with-temp [:model/Collection         synced   {:name "Synced" :is_remote_synced true :location "/"}
