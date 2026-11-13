@@ -64,7 +64,7 @@
   "Validate that an inline `:channel` or `:channel_id` handler requires the same permission as creating one."
   [handlers]
   (when (some #(or (:channel %) (:channel_id %)) handlers)
-    (api/check-403 (mi/can-write? (t2/hydrate :model/Channel :can-write?)))))
+    (api/check-403 (mi/can-write? :model/Channel))))
 
 (defn- handler-touches-template?
   [{:keys [template template_id]}]
@@ -81,7 +81,7 @@
    (check-no-resource-templates! handlers)
    (when (or (some handler-touches-template? handlers)
              (some handler-touches-template? existing-handlers))
-     (api/check-403 (mi/can-write? (t2/hydrate :model/ChannelTemplate :can-write?))))))
+     (api/check-403 (mi/can-write? :model/ChannelTemplate)))))
 
 (defn get-notification
   "Get a notification by id."

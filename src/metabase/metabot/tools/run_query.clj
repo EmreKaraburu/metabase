@@ -253,7 +253,7 @@
 
       ;; Reading the metric is collection-based and does not imply querying its table.
       (and (= :table kind)
-           (some->> table-id (mi/can-query? (t2/hydrate :model/Table :can-query?))))
+           (some->> table-id (mi/can-query? :model/Table)))
       :base-table
 
       :else
