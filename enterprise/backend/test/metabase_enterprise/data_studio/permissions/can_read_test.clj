@@ -48,7 +48,7 @@
                           *current-user-permissions-set* (delay (if collection-readable?
                                                                   #{(perms/collection-read-path collection-id)}
                                                                   #{}))]
-                  (perms/disable-perms-cache
+                  (do
                     ;; Database is readable when: library enabled AND collection readable AND table is published
                     ;; view-data permission should NOT affect can-read? for Database
                     (is (= (and (contains? features :library)

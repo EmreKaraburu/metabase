@@ -33,7 +33,8 @@
    [metabase.util.log :as log]
    [metabase.util.malli :as mu]
    [metabase.util.malli.registry :as mr]
-   [metabase.util.malli.schema :as ms])
+   [metabase.util.malli.schema :as ms]
+   [toucan2.core :as t2])
   (:import
    (java.sql SQLException)))
 
@@ -100,7 +101,7 @@
        :query
        (if-let [db-id (get-in source [:query :database])]
          (if-let [db (resolve* :model/Database db-id)]
-           (and (boolean (mi/can-query? db))
+           (and (boolean (mi/can-query? (t2/hydrate db :can_query)))
                 (source-query-permissions-ok? (:query source)))
            false)
          false)
@@ -114,7 +115,7 @@
               (and (seq table-ids)
                    (every? (fn [table-id]
                              (when-let [table (resolve* :model/Table table-id)]
-                               (mi/can-query? table)))
+                               (mi/can-query? (t2/hydrate table :can_query))))
                            table-ids))))))
 
        (throw (ex-info (str "Unknown transform source type: " (:type source)) {}))))))

@@ -61,13 +61,22 @@
   (derive :hook/entity-id)
   (derive :hook/dependencies))
 
+(methodical/defmethod t2/batched-hydrate [:model/Measure :can-read?]
+  "Whether the current user can read each of `measures`, which they can when they read its Table, the Tables answered
+  together."
+  [_model k measures]
+  (let [rows  (t2/hydrate (into [] (remove nil?) measures) [:table :can-read?])
+        flags (into {} (map (juxt :id (comp mi/can-read? :table))) rows)]
+    (for [measure measures]
+      (when measure
+        (vary-meta measure assoc k (get flags (:id measure) false))))))
+
 (defmethod mi/can-read? :model/Measure
-  ([instance]
-   (let [table (or (:table instance)
-                   (measures.db/table (:table_id instance)))]
-     (mi/can-read? (t2/hydrate table :can-read?))))
+  ([measure]
+   (api/check-500 (some? (:can-read? (meta measure))) "No :can-read? is hydrated on a Measure.")
+   (:can-read? (meta measure)))
   ([_model pk]
-   (mi/can-read? (t2/hydrate (measures.db/measure pk) :can-read?))))
+   (mi/can-read? (t2/hydrate (api/check-404 (measures.db/measure pk)) :can-read?))))
 
 ;; Measures can be written by superusers or data analysts with unrestricted view data permissions, but not on a
 ;; read-only instance that syncs their table.
@@ -77,12 +86,7 @@
                    (measures.db/table (:table_id instance)))]
      (and (or api/*is-superuser?*
               (and (api/entitled-data-analyst?)
-                   (perms/user-has-permission-for-table?
-                    api/*current-user-id*
-                    :perms/view-data
-                    :unrestricted
-                    (:db_id table)
-                    (u/the-id table))))
+                   (perms/user-has-permission-for-tables? (perms/user-info api/*current-user-id*) :perms/view-data :unrestricted {(u/the-id table) (:db_id table)})))
           (remote-sync/can-write? :model/TableUserSettings (:id table)))))
   ([_model pk]
    (mi/can-write? (t2/hydrate (measures.db/measure pk) :can-write?))))
@@ -95,12 +99,7 @@
                   (measures.db/table (:table_id instance)))]
     (and (or api/*is-superuser?*
              (and (api/entitled-data-analyst?)
-                  (perms/user-has-permission-for-table?
-                   api/*current-user-id*
-                   :perms/view-data
-                   :unrestricted
-                   (:db_id table)
-                   (u/the-id table))))
+                  (perms/user-has-permission-for-tables? (perms/user-info api/*current-user-id*) :perms/view-data :unrestricted {(u/the-id table) (:db_id table)})))
          (remote-sync/can-write? :model/TableUserSettings (:id table)))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Measure :can_write]

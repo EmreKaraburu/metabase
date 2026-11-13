@@ -83,12 +83,22 @@
   (derive :hook/entity-id)
   (derive :hook/dependencies))
 
+(methodical/defmethod t2/batched-hydrate [:model/Segment :can-read?]
+  "Whether the current user can read each of `segments`, which they can when they read its Table, the Tables answered
+  together."
+  [_model k segments]
+  (let [rows  (t2/hydrate (into [] (remove nil?) segments) [:table :can-read?])
+        flags (into {} (map (juxt :id (comp mi/can-read? :table))) rows)]
+    (for [segment segments]
+      (when segment
+        (vary-meta segment assoc k (get flags (:id segment) false))))))
+
 (defmethod mi/can-read? :model/Segment
-  ([instance]
-   (let [table (:table (t2/hydrate instance :table))]
-     (mi/can-read? (t2/hydrate table :can-read?))))
+  ([segment]
+   (api/check-500 (some? (:can-read? (meta segment))) "No :can-read? is hydrated on a Segment.")
+   (:can-read? (meta segment)))
   ([_model pk]
-   (mi/can-read? (t2/hydrate (segments.db/segment pk) :can-read?))))
+   (mi/can-read? (t2/hydrate (api/check-404 (segments.db/segment pk)) :can-read?))))
 
 ;; Segments can be written by
 ;; a) superusers
@@ -100,12 +110,7 @@
                    (segments.db/table (:table_id instance)))]
      (and (or (mi/superuser?)
               (and (api/entitled-data-analyst?)
-                   (perms/user-has-permission-for-table?
-                    api/*current-user-id*
-                    :perms/view-data
-                    :unrestricted
-                    (:db_id table)
-                    (u/the-id table))))
+                   (perms/user-has-permission-for-tables? (perms/user-info api/*current-user-id*) :perms/view-data :unrestricted {(u/the-id table) (:db_id table)})))
           (remote-sync/can-write? :model/TableUserSettings (:id table)))))
   ([_model pk]
    (mi/can-write? (t2/hydrate (segments.db/segment pk) :can-write?))))
@@ -120,12 +125,7 @@
                   (segments.db/table (:table_id instance)))]
     (and (or (mi/superuser?)
              (and (api/entitled-data-analyst?)
-                  (perms/user-has-permission-for-table?
-                   api/*current-user-id*
-                   :perms/view-data
-                   :unrestricted
-                   (:db_id table)
-                   (u/the-id table))))
+                  (perms/user-has-permission-for-tables? (perms/user-info api/*current-user-id*) :perms/view-data :unrestricted {(u/the-id table) (:db_id table)})))
          (remote-sync/can-write? :model/TableUserSettings (:id table)))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Segment :can_write]

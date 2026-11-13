@@ -12,7 +12,7 @@
    [metabase.lib.test-util.notebook-helpers :as nb]
    [metabase.parameters.chain-filter :as chain-filter]
    [metabase.parameters.dashboard :as parameters.dashboard]
-   [metabase.permissions.models.data-permissions :as data-perms]
+   [metabase.permissions.data-permissions :as data-perms]
    [metabase.permissions.models.permissions-group :as perms-group]
    [metabase.permissions.test-util :as perms.test-util]
    [metabase.query-processor :as qp]
@@ -122,7 +122,7 @@
                                       reviews.product_id products.title]
             (testing "Test parameter remapping for multi-field scenario"
               (mt/with-full-data-perms-for-all-users!
-                (data-perms/disable-perms-cache
+                (do
                  (binding [api/*current-user-id*         (mt/user->id :rasta)
                            qp.perms/*param-values-query* true]
                    (let [dashboard (t2/select-one :model/Dashboard :id dashboard-id)
@@ -170,7 +170,7 @@
                     {(mt/id :reviews)  {:perms/create-queries :no}
                      (mt/id :orders)   {:perms/create-queries :no}
                      products-table-id {:perms/create-queries :no}}
-                    (data-perms/disable-perms-cache
+                    (do
                      ;; Mimicks the API endpoint (required):
                      (binding [qp.perms/*param-values-query* true]
                        (let [remapped-values (parameters.dashboard/dashboard-param-remapped-value dashboard (:id parameter) 1)]
@@ -181,7 +181,7 @@
                   (perms.test-util/with-perm-for-group-and-table! (perms-group/all-users) products-table-id
                     :perms/view-data :blocked
                     (binding [api/*current-user-id* (mt/user->id :rasta)]
-                      (data-perms/disable-perms-cache
+                      (do
                        ;; Mimicks the API endpoint (required):
                        (binding [qp.perms/*param-values-query* true]
                          (let [dashboard (t2/select-one :model/Dashboard :id dashboard-id)
@@ -473,7 +473,7 @@
   (testing "linked filter across cards: constraint's via-path must not dangle from the target card's source table"
     (mt/dataset test-data
       (mt/with-full-data-perms-for-all-users!
-        (data-perms/disable-perms-cache
+        (do
          (let [mp             (mt/metadata-provider)
                orders         (lib.metadata/table mp (mt/id :orders))
                products-table (lib.metadata/table mp (mt/id :products))
@@ -546,7 +546,7 @@
   (testing "repeated loads of a linked-filter dropdown hit the cache after the first warehouse query (#85225)"
     (mt/dataset test-data
       (mt/with-full-data-perms-for-all-users!
-        (data-perms/disable-perms-cache
+        (do
          (let [mp            (mt/metadata-provider)
                orders        (lib.metadata/table mp (mt/id :orders))
                orders-qty    (mt/id :orders :quantity)
@@ -585,7 +585,7 @@
   (testing "repeated searches on a linked-filter dropdown hit the cache after the first warehouse query (#85225)"
     (mt/dataset test-data
       (mt/with-full-data-perms-for-all-users!
-        (data-perms/disable-perms-cache
+        (do
          (let [mp           (mt/metadata-provider)
                orders       (lib.metadata/table mp (mt/id :orders))
                orders-qty   (mt/id :orders :quantity)
@@ -698,7 +698,7 @@
   (testing "Remapping conflict resolution scenarios"
     (mt/dataset test-data
       (mt/with-full-data-perms-for-all-users!
-        (data-perms/disable-perms-cache
+        (do
          (binding [qp.perms/*param-values-query* true]
            (let [orders-product-id-field-id  (mt/id :orders :product_id)
                  reviews-product-id-field-id (mt/id :reviews :product_id)]
@@ -823,7 +823,7 @@
         (perms.test-util/with-perms-for-group-and-tables!
           (perms-group/all-users)
           {(mt/id :products) {:perms/create-queries :no}}
-          (data-perms/disable-perms-cache
+          (do
            ;; Mimicks the API endpoint (required):
            (binding [api/*current-user-id*         (mt/user->id :rasta)
                      qp.perms/*param-values-query* true]
@@ -852,7 +852,7 @@
                                                                                                (lib/ref (lib.metadata/field (mt/metadata-provider) (mt/id :orders :product_id))))]}]}]
         (mt/with-column-remappings [orders.product_id products.title]
           (mt/with-full-data-perms-for-all-users!
-            (data-perms/disable-perms-cache
+            (do
              (binding [api/*current-user-id*         (mt/user->id :rasta)
                        qp.perms/*param-values-query* true]
                (let [dashboard (t2/select-one :model/Dashboard :id dashboard-id)
@@ -884,7 +884,7 @@
                                                                       :target       [:dimension (lib.convert/->legacy-MBQL
                                                                                                  (lib/ref (lib.metadata/field (mt/metadata-provider) (mt/id :orders :user_id))))]}]}]
           (mt/with-full-data-perms-for-all-users!
-            (data-perms/disable-perms-cache
+            (do
              (binding [api/*current-user-id*         (mt/user->id :rasta)
                        qp.perms/*param-values-query* true]
                (let [dashboard (t2/select-one :model/Dashboard :id dashboard-id)

@@ -34,12 +34,8 @@
 (defn- throw-inactive-table-error
   [{db-id :id db-name :name} {table-id :id table-name :name schema :schema}]
   ;; We don't cache perms for inactive tables, so we need to manually bypass the cache here
-  (perms/disable-perms-cache
-    (let [show-table-name? (perms/user-has-permission-for-table? *current-user-id*
-                                                                 :perms/view-data
-                                                                 :unrestricted
-                                                                 db-id
-                                                                 table-id)]
+  (do
+    (let [show-table-name? (perms/user-has-permission-for-tables? (perms/user-info *current-user-id*) :perms/view-data :unrestricted {table-id db-id})]
       (throw (Exception. (tru "Table {0} is inactive." (if show-table-name?
                                                          (format "\"%s.%s.%s\"" db-name schema table-name)
                                                          table-id)))))))
@@ -192,7 +188,7 @@
   [{database-id :database, :as _query}]
   (or
    (not *current-user-id*)
-   (and (= (perms/full-database-permission-for-user *current-user-id* :perms/create-queries database-id)
+   (and (= (get (perms/every-table-in-database-permissions-for-user (perms/user-info *current-user-id*) :perms/create-queries [database-id]) database-id)
            :query-builder-and-native)
         ;; the compiled SQL of a sandboxed user's query exposes the sandbox definition
         (not (perms/sandboxed-user-for-db? database-id)))))
