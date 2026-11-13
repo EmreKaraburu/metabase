@@ -1960,8 +1960,8 @@
                               (#'mi/can-write? collection))))
       (testing "check returns hydrated answer, kept out of row"
         (let [hydrated (t2/hydrate collection :can-read? :can-write?)]
-          (is (true? (mi/can-read? hydrated)))
-          (is (true? (mi/can-write? hydrated)))
+          (is (true? (mi/can-read? (t2/hydrate hydrated :can-read?))))
+          (is (true? (mi/can-write? (t2/hydrate hydrated :can-write?))))
           (is (= collection hydrated))
           (is (= (keys collection) (keys hydrated)))))
       (testing "`:can_write` is set from hydrated answer"

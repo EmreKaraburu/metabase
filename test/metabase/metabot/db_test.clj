@@ -28,7 +28,7 @@
       (testing "and the narrowed row agrees with the full row, for both predicates and both users"
         (doseq [user [:crowberto :rasta]]
           (mt/with-test-user user
-            (is (= (mi/can-query? :model/Table table-id) (mi/can-query? row))
+            (is (= (mi/can-query? :model/Table table-id) (mi/can-query? (t2/hydrate row :can-query?)))
                 (str "can-query? disagrees for " user))
             (is (= (mi/can-read? :model/Table table-id) (mi/can-read? (t2/hydrate row :can-read?)))
                 (str "can-read? disagrees for " user))))))))

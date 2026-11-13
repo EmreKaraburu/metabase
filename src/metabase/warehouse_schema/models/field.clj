@@ -195,9 +195,9 @@
 (defmethod mi/can-query? :model/Field
   ;; Field permissions delegate to the parent Table. User can query this field if they can query its table.
   ([instance]
-   (mi/can-query? (field->table instance)))
+   (mi/can-query? (t2/hydrate (field->table instance) :can-query?)))
   ([_model pk]
-   (mi/can-query? (warehouse-schema.db/field pk))))
+   (mi/can-query? (t2/hydrate (warehouse-schema.db/field pk) :can-query?))))
 
 (defenterprise current-user-can-write-field?
   "OSS implementation: whether the current user, a superuser, can write the field `instance`, which nobody can when a

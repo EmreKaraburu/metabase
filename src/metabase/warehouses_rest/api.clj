@@ -63,6 +63,7 @@
   (let [all-tables (warehouses-rest.db/active-visible-tables-for-databases (map :id dbs))
         _ (perms/prime-table-perms-cache {:db-ids (into #{} (map :id) dbs)})
         filtered-tables (cond->> (filter mi/can-read? (t2/hydrate all-tables :can-read?))
+                          can-query?          (#(t2/hydrate % :can-query?))
                           can-query?          (filter mi/can-query?))
         db-id->tables (group-by :db_id filtered-tables)]
     (for [db dbs]
@@ -195,7 +196,7 @@
     (cond-> (-> dbs add-native-perms-info add-transforms-perms-info)
       include-tables?              (add-tables :can-query? can-query?)
       include-schemas?             add-schemas
-      can-query?                   (#(filter mi/can-query? %))
+      can-query?                   (#(filter mi/can-query? (t2/hydrate % :can-query?)))
       true                         add-can-upload-to-dbs
       true                         (t2/hydrate :router_user_attribute)
       include-editable-data-model? filter-databases-by-data-model-perms

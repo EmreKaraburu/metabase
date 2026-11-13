@@ -260,9 +260,9 @@
     ;; Use Card model which uses the default can-query? implementation
     (mt/with-temp [:model/Card card {}]
       (with-redefs [mi/can-read? (constantly true)]
-        (is (true? (mi/can-query? card))))
+        (is (true? (mi/can-query? (t2/hydrate card :can-query?)))))
       (with-redefs [mi/can-read? (constantly false)]
-        (is (false? (mi/can-query? card)))))))
+        (is (false? (mi/can-query? (t2/hydrate card :can-query?))))))))
 
 (deftest can-query-hydration-returns-boolean-test
   (testing ":can_query hydration returns a boolean value"

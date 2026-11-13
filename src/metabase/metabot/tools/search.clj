@@ -209,7 +209,7 @@
                         (into {}
                               (comp (filter mi/can-query?)
                                     (map (juxt :id #(select-keys % [:id :schema :name]))))
-                              (metabot.db/table-schema-rows table-ids)))]
+                              (t2/hydrate (metabot.db/table-schema-rows table-ids) :can-query?)))]
     (cond->> results
       (seq metric-ids)
       (mapv (fn [{:keys [id type database_name] :as result}]

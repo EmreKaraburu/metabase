@@ -343,7 +343,7 @@
   ;; `query-check` — so a metadata-only caller who is refused there must be refused here too.
   (perms/prime-table-perms-cache {:db-ids    (into #{} (keep :db_id) tables)
                                   :table-ids (into #{} (keep :id) tables)})
-  (let [queryable  (into #{} (comp (filter mi/can-query?) (keep :id)) tables)
+  (let [queryable  (into #{} (comp (filter mi/can-query?) (keep :id)) (t2/hydrate tables :can-query?))
         ;; Field ids are unique across tables, so restricting the fetch to queryable tables is the
         ;; whole gate — nothing withheld here can be looked up again below.
         field-ids  (into []

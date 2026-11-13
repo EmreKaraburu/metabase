@@ -1189,7 +1189,7 @@
                        (into {}
                              (comp (filter mi/can-query?)
                                    (map (fn [{:keys [id schema name]}] [id [db-name schema name]])))
-                             (metabot.db/table-schema-rows (vec source-table-ids))))
+                             (t2/hydrate (metabot.db/table-schema-rows (vec source-table-ids)) :can-query?)))
         describe     (fn [metric-id]
                        (let [r        (get required-by-metric-id metric-id)
                              eid      (when (= :card (:kind r))

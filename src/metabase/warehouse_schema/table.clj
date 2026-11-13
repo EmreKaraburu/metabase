@@ -209,7 +209,7 @@
                                    (if can-query?
                                      (let [tables (warehouse-schema.db/active-tables-for-database id)
                                            _ (perms/prime-table-perms-cache {:db-ids #{id}})
-                                           filtered-tables (filter mi/can-query? tables)
+                                           filtered-tables (filter mi/can-query? (t2/hydrate tables :can-query?))
                                            allowed-schemas (set (map :schema filtered-tables))]
                                        (filter #(contains? allowed-schemas %) schemas))
                                      schemas))]
@@ -239,6 +239,7 @@
          filtered-tables  (cond->> (if include-editable-data-model?
                                      (filter-tables-by-data-model-perms candidate-tables)
                                      (filter mi/can-read? (t2/hydrate candidate-tables :can-read?)))
+                            can-query? (#(t2/hydrate % :can-query?))
                             can-query? (filter mi/can-query?))
          hydration-keys   (cond-> []
                             (premium-features/any-transforms-enabled?)   (conj :transform)

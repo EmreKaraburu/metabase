@@ -123,7 +123,7 @@
         (filter mi/can-read? (t2/hydrate tables :can-read?)))
       (into [] (comp (if can-query (filter mi/can-query?) identity)
                      (map schema.table/present-table))
-            tables))))
+            (cond-> tables can-query (t2/hydrate :can-query?))))))
 
 ;; TODO (Cam 10/28/25) -- fix this endpoint so it uses kebab-case for query parameters for consistency with the rest
 ;; of the REST API
@@ -255,7 +255,7 @@
   (let [collection (api/check-404 (warehouse-schema-rest.db/collection collection-id))]
     (api/check-400 (= (:type collection) collections/library-data-collection-type)
                    (tru "Tables can only be published to Semantic layer/Data collections."))
-    (api/check-403 (every? mi/can-query? tables))))
+    (api/check-403 (every? mi/can-query? (t2/hydrate tables :can-query?)))))
 
 (defn- update-tables!
   [ids {:keys [collection_id visibility_type] :as body}]

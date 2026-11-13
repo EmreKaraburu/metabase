@@ -650,11 +650,11 @@
       ;; Only view-data - not enough
       (data-perms/set-table-permission! pg table-id :perms/view-data :unrestricted)
       (mt/with-test-user :rasta
-        (is (false? (mi/can-query? (t2/select-one :model/Table :id table-id)))))
+        (is (false? (mi/can-query? (t2/hydrate (t2/select-one :model/Table :id table-id) :can-query?)))))
       ;; Add create-queries - now can query
       (data-perms/set-table-permission! pg table-id :perms/create-queries :query-builder)
       (mt/with-test-user :rasta
-        (is (true? (mi/can-query? (t2/select-one :model/Table :id table-id))))))))
+        (is (true? (mi/can-query? (t2/hydrate (t2/select-one :model/Table :id table-id) :can-query?))))))))
 
 (deftest table-can-query?-manage-table-metadata-does-not-grant-query-access-test
   (testing "manage-table-metadata alone does NOT grant query access"
@@ -667,7 +667,7 @@
       (data-perms/set-database-permission! pg db-id :perms/create-queries :no)
       (data-perms/set-table-permission! pg table-id :perms/manage-table-metadata :yes)
       (mt/with-test-user :rasta
-        (is (false? (mi/can-query? (t2/select-one :model/Table :id table-id))))))))
+        (is (false? (mi/can-query? (t2/hydrate (t2/select-one :model/Table :id table-id) :can-query?))))))))
 
 ;;; ---------------------------------------- can_query hydration test ----------------------------------------
 

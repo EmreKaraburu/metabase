@@ -424,7 +424,7 @@
   ([obj]
    (check-404 obj)
    (try
-     (check-403 (mi/can-query? obj))
+     (check-403 (mi/can-query? (t2/hydrate obj :can-query?)))
      (catch clojure.lang.ExceptionInfo e
        (events/publish-event! :event/read-permission-failure {:user-id *current-user-id*
                                                               :object  obj})

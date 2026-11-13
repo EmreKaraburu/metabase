@@ -157,7 +157,7 @@
   table if you don't *already* have permissions to query it - otherwise, maybe you can just publish it to circumvent your
   lack of query permissions."
   [table]
-  (and (mi/can-write? (t2/hydrate table :can-write?)) (mi/can-query? table)))
+  (and (mi/can-write? (t2/hydrate table :can-write?)) (mi/can-query? (t2/hydrate table :can-query?))))
 
 (defn- can-publish-all-tables?
   "This function returns `true` iff you have permission to publish every table passed."

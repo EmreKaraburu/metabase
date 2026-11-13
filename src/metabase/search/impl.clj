@@ -55,7 +55,7 @@
   (ensure-current-user-perms-set-is-bound current-user-id current-user-perms (mi/can-read? (t2/hydrate instance :can-read?))))
 
 (defn- can-query? [{:keys [current-user-id current-user-perms]} instance]
-  (ensure-current-user-perms-set-is-bound current-user-id current-user-perms (mi/can-query? instance)))
+  (ensure-current-user-perms-set-is-bound current-user-id current-user-perms (mi/can-query? (t2/hydrate instance :can-query?))))
 
 (defmethod check-permissions-for-model :default
   [search-ctx instance]

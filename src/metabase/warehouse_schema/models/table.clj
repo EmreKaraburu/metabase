@@ -371,7 +371,7 @@
           ;; Can access via published collection (EE feature)
           (perms/can-access-via-collection? instance)))))
   ([_ pk]
-   (mi/can-query? (warehouse-schema.db/table pk))))
+   (mi/can-query? (t2/hydrate (warehouse-schema.db/table pk) :can-query?))))
 
 (defenterprise current-user-can-write-table?
   "OSS implementation: whether the current user, a superuser, can write the table `instance`, which nobody can when a

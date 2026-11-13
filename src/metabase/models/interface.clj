@@ -730,10 +730,23 @@
     (when instance
       (assoc instance :can_write (can-write? instance)))))
 
-(methodical/defmethod t2/simple-hydrate [:default :can_query]
-  "Hydration method for `:can_query`. Returns whether the current user can execute queries against this object."
-  [_model k instance]
-  (assoc instance k (can-query? instance)))
+(methodical/defmethod t2.hydrate/needs-hydration? [:default :can-query?]
+  "Whether `instance` lacks the answer `:can-query?` hydration keeps in its metadata, out of the row."
+  [_model _k instance]
+  (nil? (:can-query? (meta instance))))
+
+(methodical/defmethod t2.hydrate/batched-hydrate [:default :can-query?]
+  "Hydrates `:can-read?` on `instances`: a model without `:can-query?` hydration of its own answers [[can-query?]]
+  as it answers [[can-read?]]."
+  [_model _k instances]
+  (t2/hydrate instances :can-read?))
+
+(methodical/defmethod t2.hydrate/batched-hydrate [:default :can_query]
+  "Sets `:can_query` on each of `instances` to what [[can-query?]] answers, with `:can-query?` hydrated for them together."
+  [_model _k instances]
+  (for [instance (t2/hydrate instances :can-query?)]
+    (when instance
+      (assoc instance :can_query (can-query? instance)))))
 
 (defmulti can-create?
   "NEW! Check whether or not current user is allowed to CREATE a new instance of `model` with properties in map

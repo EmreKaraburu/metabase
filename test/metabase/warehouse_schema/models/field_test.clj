@@ -110,7 +110,7 @@
       (data-perms/set-table-permission! pg table-id :perms/view-data :unrestricted)
       (data-perms/set-table-permission! pg table-id :perms/create-queries :query-builder)
       (mt/with-test-user :rasta
-        (is (true? (mi/can-query? (t2/select-one :model/Field :id field-id))))))))
+        (is (true? (mi/can-query? (t2/hydrate (t2/select-one :model/Field :id field-id) :can-query?))))))))
 
 ;;; ---------------------------------- effective_type invariant guard tests -----------------------------------
 ;;; GHY-3388: a Field with coercion_strategy=nil and effective_type ≠ base_type is internally
