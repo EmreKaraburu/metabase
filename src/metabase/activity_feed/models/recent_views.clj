@@ -476,11 +476,12 @@
         tables (table-recents table-ids)]
     (perms/prime-table-perms-cache {:db-ids    (into #{} (keep :db_id) tables)
                                     :table-ids (into #{} (keep :id) tables)})
-    {:card       (m/index-by :id (card-recents card-ids))
-     :dashboard  (m/index-by :id (dashboard-recents dashboard-ids))
-     :collection (m/index-by :id (collection-recents collection-ids))
-     :table      (m/index-by :id tables)
-     :document   (m/index-by :id (document-recents document-ids))}))
+    (update-vals {:card       (card-recents card-ids)
+                  :dashboard  (dashboard-recents dashboard-ids)
+                  :collection (collection-recents collection-ids)
+                  :table      tables
+                  :document   (document-recents document-ids)}
+                 #(m/index-by :id (t2/hydrate % :can-read? :can-write?)))))
 
 (def ^:private ItemValidator (mr/validator Item))
 

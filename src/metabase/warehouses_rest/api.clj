@@ -423,8 +423,11 @@
                             (filter mi/can-read? (t2/hydrate tables :can-read?))
                             tables)))
         (update :tables (fn [tables]
-                          (for [table tables]
-                            (update table :segments #(filter mi/can-read? (t2/hydrate % :can-read?))))))
+                          (let [readable (into #{}
+                                               (comp (filter mi/can-read?) (map :id))
+                                               (t2/hydrate (mapcat :segments tables) :can-read?))]
+                            (for [table tables]
+                              (update table :segments (partial filter #(contains? readable (:id %))))))))
         (update :tables (fn [tables]
                           (for [table tables]
                             (update table :schema str))))

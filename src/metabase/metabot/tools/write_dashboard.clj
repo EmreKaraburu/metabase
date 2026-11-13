@@ -537,8 +537,8 @@
   [dashboard ops]
   (when-let [card-ids (seq (placed-card-ids ops))]
     (when-let [foreign (seq (filter #(and (not= (:dashboard_id %) (:id dashboard))
-                                          (mi/can-read? (t2/hydrate % :can-read?)))
-                                    (metabot.db/dashboard-questions (vec card-ids))))]
+                                          (mi/can-read? %))
+                                    (t2/hydrate (metabot.db/dashboard-questions (vec card-ids)) :can-read?)))]
       (let [shown   (into #{}
                           (mapcat (fn [{:keys [card_id series]}] (cons card_id (map :id series))))
                           (some-> dashboard (t2/hydrate [:dashcards :series]) :dashcards))

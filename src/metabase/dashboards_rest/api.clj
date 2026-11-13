@@ -98,11 +98,14 @@
   [dashboard]
   (m/update-existing dashboard :dashcards
                      (fn [dashcards]
-                       (mapv (fn [dashcard]
-                               (cond-> dashcard
-                                 (and (:action dashcard) (not (mi/can-read? (t2/hydrate (:action dashcard) :can-read?))))
-                                 (dissoc :action)))
-                             dashcards))))
+                       (let [readable (into #{}
+                                            (comp (filter mi/can-read?) (map :id))
+                                            (t2/hydrate (keep :action dashcards) :can-read?))]
+                         (mapv (fn [dashcard]
+                                 (cond-> dashcard
+                                   (and (:action dashcard) (not (contains? readable (:id (:action dashcard)))))
+                                   (dissoc :action)))
+                               dashcards)))))
 
 (defn- hydrate-dashboard-details
   "Get dashboard details for the complete dashboard, including tabs, dashcards, params, etc."

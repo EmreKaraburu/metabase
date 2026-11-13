@@ -344,10 +344,9 @@
                     [:id ms/PositiveInt]]]
   (api/read-check :model/Table id)
   (when-let [field-ids (seq (warehouse-schema-rest.db/active-unretired-field-ids-for-table id))]
-    (for [origin-field (warehouse-schema-rest.db/active-fields-targeting field-ids)
-          :let [origin-field (t2/hydrate origin-field [:table :db])]
+    (for [origin-field (t2/hydrate (warehouse-schema-rest.db/active-fields-targeting field-ids) [:table :db] :can-read?)
           :when (and (-> origin-field :table :active)
-                     (mi/can-read? (t2/hydrate origin-field :can-read?)))
+                     (mi/can-read? origin-field))
           :let [origin-field (update origin-field :table schema.table/present-table)]]
       ;; it's silly to be hydrating some of these tables/dbs
       {:relationship   :Mt1
