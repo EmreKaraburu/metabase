@@ -705,11 +705,12 @@
   [:= [:inline 1] [:inline 1]])
 
 (defn- user-groups-query
-  "The ids of the groups of the user with `user-id`."
+  "The ids of the groups of the user with `user-id`, inlined like every value of the Collection clauses, as in the data
+  permission clauses they are combined with: H2 loses the parameters of a CTE that another CTE reads."
   [user-id]
   ^:allow-subquery {:select [:group_id]
                     :from   [(t2/table-name :model/PermissionsGroupMembership)]
-                    :where  [:= :user_id user-id]})
+                    :where  [:= :user_id [:inline user-id]]})
 
 (defn- user-collection-objects-query
   "The objects of the Collection permission rows of the groups of the user with `user-id`."
@@ -730,7 +731,7 @@
         paths (cond-> [(path "/")]
                 (= permission-level :read) (conj (path "/read/")))]
     (case probe
-      :per-row [:exists ^:allow-subquery {:select [1]
+      :per-row [:exists ^:allow-subquery {:select [[[:inline 1]]]
                                           :from   [[(t2/table-name :model/Permissions) :perms_row]]
                                           :where  [:and
                                                    [:in :perms_row.object paths]
@@ -743,16 +744,16 @@
   [{:keys [user-id tenant-collection-ids] :as user}]
   (when user-id
     [:or
-     [:= :perms_collection.personal_owner_id user-id]
-     [:exists ^:allow-subquery {:select [1]
+     [:= :perms_collection.personal_owner_id [:inline user-id]]
+     [:exists ^:allow-subquery {:select [[[:inline 1]]]
                                 :from   [[(t2/table-name :model/Collection) :perms_personal]]
                                 :where  [:and
-                                         [:= :perms_personal.personal_owner_id user-id]
-                                         [:like :perms_collection.location [:concat "/" :perms_personal.id "/%"]]]}]
+                                         [:= :perms_personal.personal_owner_id [:inline user-id]]
+                                         [:like :perms_collection.location [:concat [:inline "/"] :perms_personal.id [:inline "/%"]]]]}]
      (when (seq tenant-collection-ids)
-       [:in :perms_collection.id tenant-collection-ids])
+       [:in :perms_collection.id (mapv (fn [id] [:inline id]) tenant-collection-ids)])
      (when (:is-data-analyst? user)
-       [:= :perms_collection.namespace "transforms"])]))
+       [:= :perms_collection.namespace [:inline "transforms"]])]))
 
 (defn- collection-level-clause
   "A HoneySQL clause holding when `user` has `permission-level` on the Collection aliased `perms_collection`, probed per
@@ -778,7 +779,7 @@
 (defn- trash-clause
   "Whether the Collection aliased `perms_collection` is the trash."
   []
-  [:= :perms_collection.type "trash"])
+  [:= :perms_collection.type [:inline "trash"]])
 
 (defn- listed-collection-clause
   "The clause over the Collection aliased `perms_collection` applying the criteria of `options` beyond permissions: the trash,
@@ -787,17 +788,17 @@
    {:keys [include-trash-collection? include-archived-items archive-operation-id]}]
   [:and
    (when-not include-trash-collection?
-     [:or [:= :perms_collection.type nil] [:not= :perms_collection.type "trash"]])
+     [:or [:= :perms_collection.type nil] [:not= :perms_collection.type [:inline "trash"]]])
    (case include-archived-items
      :exclude [:= :perms_collection.archived false]
      ;; the trash is included when viewing archived items only
      :only    [:or [:= :perms_collection.archived true] (trash-clause)]
      :all     nil)
    (when-not use-tenants?
-     [:or [:= :perms_collection.namespace nil] [:not= :perms_collection.namespace "shared-tenant-collection"]])
+     [:or [:= :perms_collection.namespace nil] [:not= :perms_collection.namespace [:inline "shared-tenant-collection"]]])
    (when archive-operation-id
      ;; the trash is part of every archive operation
-     [:or [:= :perms_collection.archive_operation_id archive-operation-id] (trash-clause)])])
+     [:or [:= :perms_collection.archive_operation_id [:inline archive-operation-id]] (trash-clause)])])
 
 (defn- root-collection-clause
   "A clause holding when `user` has `permission-level` on the root Collection of `root-namespace`, whose permission
@@ -815,11 +816,11 @@
 
       user-id
       [:exists ^:allow-subquery
-       {:select [1]
+       {:select [[[:inline 1]]]
         :from   [[(t2/table-name :model/Permissions) :perms_row]]
         :where  [:and
-                 [:in :perms_row.object (cond-> [write-object]
-                                          (= permission-level :read) (conj read-object))]
+                 [:in :perms_row.object (cond-> [[:inline write-object]]
+                                          (= permission-level :read) (conj [:inline read-object]))]
                  [:in :perms_row.group_id (user-groups-query user-id)]]}])))
 
 (defn- visible-collection-where
@@ -867,7 +868,7 @@
        [:and [:= collection-id-field nil] root])
      [:exists
       ^:allow-subquery
-      {:select [1]
+      {:select [[[:inline 1]]]
        :from   [[(t2/table-name :model/Collection) :perms_collection]]
        :where  [:and
                 [:= :perms_collection.id collection-id-field]
@@ -906,7 +907,7 @@
   [user :- ::collection-user]
   (let [some-collection (fn [permission-level]
                           [:exists ^:allow-subquery
-                           {:select [1]
+                           {:select [[[:inline 1]]]
                             :from   [[(t2/table-name :model/Collection) :perms_collection]]
                             :where  (visible-collection-where user {:permission-level permission-level})}])]
     (:rank (t2/query-one {:select [[[:case
