@@ -409,7 +409,7 @@
      (cond-> (t2/select-pks-set :model/Collection
                                 {:where (perms/visible-collections-filter-clause :collection.id user-info options)})
        (seq (t2/query {:select [[[:inline 1] :one]]
-                       :from   [[^:allow-subquery {:select [[nil :collection_id]]} :row]]
+                       :from   [[^:allow-subquery {:select [[[:cast nil :integer] :collection_id]]} :row]]
                        :where  (perms/visible-collections-filter-clause :row.collection_id user-info options)}))
        (conj "root")))))
 
