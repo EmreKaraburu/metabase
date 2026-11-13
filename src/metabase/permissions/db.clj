@@ -749,11 +749,11 @@
                                 :from   [[(t2/table-name :model/Collection) :perms_personal]]
                                 :where  [:and
                                          [:= :perms_personal.personal_owner_id [:inline user-id]]
-                                         [:like :perms_collection.location [:concat [:inline "/"] :perms_personal.id [:inline "/%"]]]]}]
+                                         [:like :perms_collection.location [:concat (h2x/literal "/") :perms_personal.id (h2x/literal "/%")]]]}]
      (when (seq tenant-collection-ids)
        [:in :perms_collection.id (mapv (fn [id] [:inline id]) tenant-collection-ids)])
      (when (:is-data-analyst? user)
-       [:= :perms_collection.namespace [:inline "transforms"]])]))
+       [:= :perms_collection.namespace (h2x/literal "transforms")])]))
 
 (defn- collection-level-clause
   "A HoneySQL clause holding when `user` has `permission-level` on the Collection aliased `perms_collection`, probed per
@@ -779,7 +779,7 @@
 (defn- trash-clause
   "Whether the Collection aliased `perms_collection` is the trash."
   []
-  [:= :perms_collection.type [:inline "trash"]])
+  [:= :perms_collection.type (h2x/literal "trash")])
 
 (defn- listed-collection-clause
   "The clause over the Collection aliased `perms_collection` applying the criteria of `options` beyond permissions: the trash,
@@ -788,17 +788,25 @@
    {:keys [include-trash-collection? include-archived-items archive-operation-id]}]
   [:and
    (when-not include-trash-collection?
-     [:or [:= :perms_collection.type nil] [:not= :perms_collection.type [:inline "trash"]]])
+     [:or [:= :perms_collection.type nil] [:not= :perms_collection.type (h2x/literal "trash")]])
    (case include-archived-items
      :exclude [:= :perms_collection.archived false]
      ;; the trash is included when viewing archived items only
      :only    [:or [:= :perms_collection.archived true] (trash-clause)]
      :all     nil)
    (when-not use-tenants?
-     [:or [:= :perms_collection.namespace nil] [:not= :perms_collection.namespace [:inline "shared-tenant-collection"]]])
+     [:or [:= :perms_collection.namespace nil] [:not= :perms_collection.namespace (h2x/literal "shared-tenant-collection")]])
    (when archive-operation-id
      ;; the trash is part of every archive operation
-     [:or [:= :perms_collection.archive_operation_id [:inline archive-operation-id]] (trash-clause)])])
+     [:or [:= :perms_collection.archive_operation_id archive-operation-id] (trash-clause)])])
+
+(defn- object-literal
+  "The permission object `object` as a literal when it holds nothing but the characters of a path of a known namespace,
+  and otherwise as it is, for a parameter: a namespace can come from a request."
+  [object]
+  (if (re-matches #"[a-z0-9/_-]+" object)
+    (h2x/literal object)
+    object))
 
 (defn- root-collection-clause
   "A clause holding when `user` has `permission-level` on the root Collection of `root-namespace`, whose permission
@@ -819,8 +827,8 @@
        {:select [[[:inline 1]]]
         :from   [[(t2/table-name :model/Permissions) :perms_row]]
         :where  [:and
-                 [:in :perms_row.object (cond-> [[:inline write-object]]
-                                          (= permission-level :read) (conj [:inline read-object]))]
+                 [:in :perms_row.object (cond-> [(object-literal write-object)]
+                                          (= permission-level :read) (conj (object-literal read-object)))]
                  [:in :perms_row.group_id (user-groups-query user-id)]]}])))
 
 (defn- visible-collection-where
