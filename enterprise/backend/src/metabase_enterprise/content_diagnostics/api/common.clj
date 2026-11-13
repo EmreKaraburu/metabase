@@ -378,7 +378,6 @@
                                                              {:visibility-config archived-inclusive-visibility
                                                               :exclude-archived? false})) :can-read?)))
 
-
 (defn- hydrate-duplicate-entities
   "The findings' stored `duplicate_entity_ids` → `{[entity-type id] → {:id :name :entity_type <etype>
   :card_type <kw> :display <kw> :view_count <int> :namespace <kw>}}`. `card_type` and `display` are present
