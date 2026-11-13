@@ -2637,6 +2637,9 @@
                     :model/Dashboard
                     :model/DataApp
                     :model/Database
+                    :model/Document
+                    :model/Measure
+                    :model/Segment
                     :model/Table
                     :model/User}}
 
