@@ -21,7 +21,8 @@
    [metabase.metabot.tools.search :as metabot.search]
    [metabase.models.interface :as mi]
    [metabase.premium-features.core :as premium-features]
-   [metabase.util :as u]))
+   [metabase.util :as u]
+   [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
 
@@ -121,9 +122,9 @@
   [ids]
   (when (seq ids)
     (into {}
-          (comp (filter mi/can-read?)
+          (comp (filter :can_read)
                 (map (juxt :id :name)))
-          (mcp.db/collections-for-read-check ids))))
+          (t2/hydrate (mcp.db/collections-for-read-check ids) :can_read))))
 
 (defn- add-collection-paths
   "Attach `:collection_path` — ancestor collection names joined with `/`, ending in the

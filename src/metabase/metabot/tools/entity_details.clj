@@ -154,7 +154,7 @@
   (let [dashcards (metabot.db/dashcards dashboard-id)
         card-ids  (into #{} (keep #(when-not (:action_id %) (:card_id %))) dashcards)
         readable  (if (seq card-ids)
-                    (into #{} (comp (filter mi/can-read?) (map :id)) (metabot.db/cards-for-read-check card-ids))
+                    (into #{} (comp (filter :can_read) (map :id)) (t2/hydrate (metabot.db/cards-for-read-check card-ids) :can_read))
                     #{})
         visible   (if (shared/curated-only?)
                     (into #{} (map second) (curation/curated-ids (for [id readable] ["card" id])))

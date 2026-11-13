@@ -84,9 +84,9 @@
   (try
     (let [ids (lib/all-source-card-ids-recursive query)]
       (or (empty? ids)
-          (let [cards (mcp.db/select-by-ids :model/Card ids)]
+          (let [cards (t2/hydrate (mcp.db/select-by-ids :model/Card ids) :can_read)]
             (and (= (count cards) (count ids))
-                 (every? mi/can-read? cards)))))
+                 (every? :can_read cards)))))
     (catch Exception _ false)))
 
 (def ^:private max-native-summary-length

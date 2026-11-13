@@ -484,7 +484,7 @@
   (qp.store/with-metadata-provider database-id
     (let [card (card database-id card-id)]
       (log/tracef "Required perms to run Card: %s" (pr-str (mi/perms-objects-set card :read)))
-      (when-not (mi/can-read? card)
+      (when-not (mi/can-read? (t2/hydrate card :can_read))
         (throw (perms-exception (tru "You do not have permissions to view Card {0}." (pr-str card-id))
                                 (mi/perms-objects-set card :read)
                                 {:card-id card-id}))))))
