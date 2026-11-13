@@ -505,15 +505,20 @@
 (deftest effective-location-path-test
   (mt/with-dynamic-fn-redefs [audit/is-collection-id-audit? (constantly false)]
     (testing "valid input"
-      (doseq [[[path visible-ids] expected] {["/10/20/30/" #{10 20}]    "/10/20/"
-                                             ["/10/20/30/" #{10 30}]    "/10/30/"
-                                             ["/10/20/30/" #{}]         "/"
-                                             ["/10/20/30/" #{10 20 30}] "/10/20/30/"}]
-        (testing (format "path '%s' with visible ids '%s'" path (pr-str visible-ids))
-          (is (= expected
-                 (binding [api/*current-user-permissions-set*
-                           (delay (into #{} (map perms/collection-read-path) visible-ids))]
-                   (collection/effective-location-path {:location path})))))))
+      (mt/with-non-admin-groups-no-root-collection-perms
+        (mt/with-temp [:model/Collection {a :id} {}
+                       :model/Collection {b :id} {:location (format "/%d/" a)}
+                       :model/Collection {c :id} {:location (format "/%d/%d/" a b)}]
+          (let [path (format "/%d/%d/%d/" a b c)]
+            (doseq [[visible-ids expected] {[a b]   (format "/%d/%d/" a b)
+                                            [a c]   (format "/%d/%d/" a c)
+                                            []      "/"
+                                            [a b c] path}]
+              (testing (format "path '%s' with visible ids '%s'" path (pr-str visible-ids))
+                (t2/delete! :model/Permissions :collection_id [:in [a b c]])
+                (with-current-user-perms-for-collections! visible-ids
+                  (is (= expected
+                         (collection/effective-location-path {:location path}))))))))))
     (testing "invalid input"
       (doseq [path [nil [10 20]]]
         (testing (format "path '%s'" path)
