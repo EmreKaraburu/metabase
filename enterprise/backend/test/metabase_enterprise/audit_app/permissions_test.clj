@@ -95,7 +95,7 @@
                    have data perms for the audit DB"
           (mt/with-full-data-perms-for-all-users!
             (mt/with-test-user :rasta
-              (binding [api/*current-user-permissions-set* (delay #{})]
+              (mt/with-non-admin-groups-no-collection-perms (audit/default-audit-collection)
                 (let [audit-view (->> (t2/select-one :model/Table :db_id audit/audit-db-id {:where [:like [:lower :name] "v_%"]})
                                       (tu/poll-until 5000))]
                   (is (= {:message "You do not have access to the audit database"

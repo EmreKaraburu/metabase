@@ -154,9 +154,9 @@
                                      :effective_ancestors
                                      ;; two pieces for backwards compatibility:
                                      ;; - remove the root collection
-                                     ;; - remove the `personal_owner_id`
+                                     ;; - remove the `personal_owner_id` and the `can_write` hydrated with the ancestors
                                      (remove collection.root/is-root-collection?)
-                                     (map #(dissoc % :personal_owner_id))))))]
+                                     (map #(dissoc % :personal_owner_id :can_write))))))]
     (map annotate search-results)))
 
 (defn- add-collection-effective-location

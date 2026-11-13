@@ -268,14 +268,14 @@
               (testing "Should be able to run a Card with another Card as its source query with just perms for the former (#15131)"
                 (testing "Should not be able to run the parent Card"
                   (mt/with-test-user :rasta
-                    (is (not (mi/can-read? disallowed-collection)))
+                    (is (not (mi/can-read? (t2/hydrate disallowed-collection :can_read))))
                     (is (not (mi/can-read? parent-card))))
                   (is (= "You don't have permissions to do that."
                          (process-query-for-card parent-card))))
                 (testing "Should not be able to run the child Card due to Block permissions"
                   (mt/with-test-user :rasta
                     (is (not (mi/can-read? parent-card)))
-                    (is (mi/can-read? allowed-collection))
+                    (is (mi/can-read? (t2/hydrate allowed-collection :can_read)))
                     (is (mi/can-read? child-card)))
                   (rasta-view-data-perm= :blocked)
                   (testing "Data perms prohibit running queries"
