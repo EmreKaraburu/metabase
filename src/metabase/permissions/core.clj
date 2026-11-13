@@ -44,8 +44,7 @@
   collection-permission-at-least?
   collection-permissions-for-user
   some-collection-permission-for-user
-  visible-collections-filter-clause
-  visible-collections-set-filter-clause]
+  visible-collections-filter-clause]
  [metabase.permissions.db
   group-tenant-flags
   groups-by-ids]

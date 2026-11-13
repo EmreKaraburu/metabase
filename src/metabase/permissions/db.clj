@@ -714,23 +714,17 @@
 
 (defn- collection-rows-clause
   "Whether a group of the user with `user-id` holds a permission row of the Collection aliased `perms_collection` for
-  `permission-level`: a `read-and-write` one for write, and also a `read` one for read, by the Collection id the row
-  carries. With the `:per-row` `probe` it looks up the rows of each Collection, and with `:set` it matches each
-  Collection against the Collections of the user's rows, read once."
-  [user-id permission-level probe]
-  (let [rows-where [:and
-                    [:= :perms_row.perm_type (h2x/literal :perms/collection-access)]
-                    [:in :perms_row.perm_value (cond-> [(h2x/literal :read-and-write)]
-                                                 (= permission-level :read) (conj (h2x/literal :read)))]
-                    [:in :perms_row.group_id (user-groups-query user-id)]]]
-    (case probe
-      :per-row [:exists ^:allow-subquery {:select [[[:inline 1]]]
-                                          :from   [[(t2/table-name :model/Permissions) :perms_row]]
-                                          :where  (conj rows-where [:= :perms_row.collection_id :perms_collection.id])}]
-      :set     [:in :perms_collection.id ^:allow-subquery {:select   [:perms_row.collection_id]
-                                                           :from     [[(t2/table-name :model/Permissions) :perms_row]]
-                                                           :where    rows-where
-                                                           :group-by [:perms_row.collection_id]}])))
+  `permission-level`: a `read-and-write` one for write, and also a `read` one for read, looked up by the Collection id
+  the row carries."
+  [user-id permission-level]
+  [:exists ^:allow-subquery {:select [[[:inline 1]]]
+                             :from   [[(t2/table-name :model/Permissions) :perms_row]]
+                             :where  [:and
+                                      [:= :perms_row.collection_id :perms_collection.id]
+                                      [:= :perms_row.perm_type (h2x/literal :perms/collection-access)]
+                                      [:in :perms_row.perm_value (cond-> [(h2x/literal :read-and-write)]
+                                                                   (= permission-level :read) (conj (h2x/literal :read)))]
+                                      [:in :perms_row.group_id (user-groups-query user-id)]]}])
 
 (defn- own-collection-clause
   "Whether the user of `user` writes the Collection aliased `perms_collection` whatever their groups hold: their personal
@@ -750,16 +744,13 @@
        [:= :perms_collection.namespace (h2x/literal "transforms")])]))
 
 (defn- collection-level-clause
-  "A HoneySQL clause holding when `user` has `permission-level` on the Collection aliased `perms_collection`, probed per
-  row or matched against the user's permission rows read once, by `probe`."
-  ([user permission-level]
-   (collection-level-clause user permission-level :per-row))
-  ([{:keys [user-id is-superuser?] :as user} permission-level probe]
-   (if is-superuser?
-     every-row-clause
-     [:or
-      (own-collection-clause user)
-      (collection-rows-clause user-id permission-level probe)])))
+  "A HoneySQL clause holding when `user` has `permission-level` on the Collection aliased `perms_collection`."
+  [{:keys [user-id is-superuser?] :as user} permission-level]
+  (if is-superuser?
+    every-row-clause
+    [:or
+     (own-collection-clause user)
+     (collection-rows-clause user-id permission-level)]))
 
 (defn- collection-rank-case
   "A HoneySQL CASE giving, for the Collection aliased `perms_collection`, 2 when the user of `user` writes it, 1 when they only
@@ -826,17 +817,15 @@
                  [:in :perms_row.group_id (user-groups-query user-id)]]}])))
 
 (defn- visible-collection-where
-  "The HoneySQL where-clause over the Collection aliased `perms_collection` holding when it is listed to the user of `user` with
-  `options` (see `::permissions.schema/collection-filter-options`)."
-  ([user options]
-   (visible-collection-where user options :per-row))
-  ([user options probe]
-   (let [options (merge {:permission-level :read, :include-archived-items :exclude} options)]
-     [:and
-      [:or
-       (collection-level-clause user (:permission-level options) probe)
-       (when (:include-trash-collection? options) (trash-clause))]
-      (listed-collection-clause user options)])))
+  "The HoneySQL where-clause over the Collection aliased `perms_collection` holding when it is listed to the user of
+  `user` with `options` (see `::permissions.schema/collection-filter-options`)."
+  [user options]
+  (let [options (merge {:permission-level :read, :include-archived-items :exclude} options)]
+    [:and
+     [:or
+      (collection-level-clause user (:permission-level options))
+      (when (:include-trash-collection? options) (trash-clause))]
+     (listed-collection-clause user options)]))
 
 (defn- qualified-column?
   "Whether `column` names its table, as in `:report_card.collection_id`."
@@ -875,25 +864,6 @@
        :where  [:and
                 [:= :perms_collection.id collection-id-field]
                 (visible-collection-where user options)]}]]))
-
-(mu/defn visible-collections-set-filter-clause :- [:fn vector?]
-  "Like [[visible-collections-filter-clause]], for queries checking most Collections, such as Collection trees and
-  listings: it works out the set of visible Collections once and matches `collection-id-field` against it, instead of
-  probing each row's Collection."
-  [collection-id-field :- QualifiedColumn
-   user                :- ::collection-user
-   root-objects        :- ::root-objects
-   options             :- ::permissions.schema/collection-filter-options]
-  (check-qualified-column collection-id-field)
-  (let [options (merge {:permission-level :read, :include-archived-items :exclude} options)]
-    [:or
-     (when-let [root (root-collection-clause user root-objects options)]
-       [:and [:= collection-id-field nil] root])
-     [:in collection-id-field
-      ^:allow-subquery
-      {:select [:perms_collection.id]
-       :from   [[(t2/table-name :model/Collection) :perms_collection]]
-       :where  (visible-collection-where user options :set)}]]))
 
 (mu/defn collection-ranks :- [:sequential [:map [:id ms/PositiveInt] [:rank :int]]]
   "For each of the Collections with `collection-ids`, 2 when `user` writes it, 1 when they only read it, and 0

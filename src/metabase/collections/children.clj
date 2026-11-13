@@ -126,7 +126,7 @@
                 [:= :namespace nil])
               (when (seq namespaces)
                 [:in :namespace namespaces])]
-             (perms/visible-collections-set-filter-clause :collection.id (api/current-user-info) {:include-archived-items    (if archived
+             (perms/visible-collections-filter-clause :collection.id (api/current-user-info) {:include-archived-items    (if archived
                                                                                                                                :only
                                                                                                                                :exclude)
                                                                                                   :include-trash-collection? true

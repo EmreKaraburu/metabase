@@ -127,13 +127,3 @@
                                                     (root-objects (:root-namespace options))
                                                     options))
 
-(mu/defn visible-collections-set-filter-clause :- [:fn vector?]
-  "Like [[visible-collections-filter-clause]], for queries checking most Collections, such as Collection trees and
-  listings: it works out the set of visible Collections once instead of probing each row's Collection."
-  [collection-id-field :- :keyword
-   user-info           :- ::permissions.schema/collection-user-info
-   options             :- ::permissions.schema/collection-filter-options]
-  (permissions.db/visible-collections-set-filter-clause collection-id-field
-                                                        (collection-user user-info)
-                                                        (root-objects (:root-namespace options))
-                                                        options))

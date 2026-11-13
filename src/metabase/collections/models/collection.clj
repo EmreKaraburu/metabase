@@ -1059,7 +1059,7 @@
                               "."
                               col-name)))]
     [:and
-     (perms/visible-collections-set-filter-clause (->col "id") (api/current-user-info) visibility-config)
+     (perms/visible-collections-filter-clause (->col "id") (api/current-user-info) visibility-config)
      (if (is-trash? parent-coll)
        [:= (->col "archived_directly") true]
        [:and
@@ -1069,7 +1069,7 @@
         [:not [:exists ^:allow-subquery {:select 1
                                          :from [[:collection :c2]]
                                          :where [:and
-                                                 (perms/visible-collections-set-filter-clause :c2.id (api/current-user-info)
+                                                 (perms/visible-collections-filter-clause :c2.id (api/current-user-info)
                                                                                               visibility-config)
                                                  [:= (->col "location") [:concat :c2.location :c2.id (h2x/literal "/")]]
                                                  (when-not (collection.root/is-root-collection? parent-coll)
