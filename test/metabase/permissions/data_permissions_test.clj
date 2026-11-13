@@ -1527,8 +1527,9 @@
                                                                      :id user-info {perm-type level})]})))
                                 "Databases")))
                         (doseq [perm-type [:perms/manage-database :perms/transforms]]
-                          (is (= (into #{} (filter #(data-perms/user-has-permission-for-database? user-id perm-type :yes %))
-                                       db-ids)
+                          (is (= (into #{}
+                                       (keep (fn [[db-id value]] (when (= :yes value) db-id)))
+                                       (data-perms/database-permissions-for-user user-info perm-type db-ids))
                                  (set (t2/select-pks-set :model/Database
                                                          {:where [:and [:in :id db-ids]
                                                                   (data-perms/visible-databases-filter-clause
@@ -1548,8 +1549,7 @@
                   (data-perms/set-database-permission! group-2 db-2 :perms/transforms :yes)
                   (binding [api/*current-user-id* user-id
                             api/*is-superuser?*   false]
-                    (data-perms/disable-perms-cache
-                     (check))))))))))))
+                    (check)))))))))))
 
 (deftest table-permission-with-other-database-test
   (testing "a table checked with a Database that isn't its own counts only that Database's rows, before or after its own"
