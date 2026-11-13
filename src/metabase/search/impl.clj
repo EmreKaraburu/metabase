@@ -424,7 +424,7 @@
    :model/Table     [:can-query? :can-write?]
    :model/Segment   [:can-read? :can-write?]
    :model/Measure   [:can-read? :can-write?]
-   :model/Database  [:can-read? :can-write?]})
+   :model/Database  [:can-read?]})
 
 (defn- collection-check-answers
   "The `:can-write?` answer of each Collection with `collection-ids`, keyed by model and id, from the columns the check
