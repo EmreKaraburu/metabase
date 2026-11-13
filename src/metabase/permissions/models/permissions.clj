@@ -157,8 +157,6 @@
     /block/db/:id/                                  ; disallow queries against this DB unless User has data perms.
     /                                               ; full root perms"
   (:require
-   [clojure.string :as str]
-   [metabase.api.common :as api]
    [metabase.config.core :as config]
    [metabase.models.interface :as mi]
    [metabase.permissions.data-permissions :as data-perms]

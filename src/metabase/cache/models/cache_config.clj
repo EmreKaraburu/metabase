@@ -1,9 +1,9 @@
 (ns metabase.cache.models.cache-config
   "A model representing cache configuration."
   (:require
-   [metabase.api.common :as api]
    [java-time.api :as t]
    [medley.core :as m]
+   [metabase.api.common :as api]
    [metabase.cache.db :as cache.db]
    [metabase.events.core :as events]
    [metabase.models.interface :as mi]

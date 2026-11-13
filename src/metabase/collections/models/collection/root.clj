@@ -1,8 +1,6 @@
 (ns metabase.collections.models.collection.root
   (:require
    [medley.core :as m]
-   [metabase.models.interface :as mi]
-   [metabase.permissions.path :as permissions.path]
    [metabase.premium-features.core :as premium-features]
    [metabase.util :as u]
    [metabase.util.i18n :refer [tru]]

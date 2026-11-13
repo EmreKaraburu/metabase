@@ -44,10 +44,7 @@
                     (perms/revoke-collection-permissions! group-id collection-id)
                     (perms/revoke-collection-permissions! (perms/all-users-group) collection-id)))
                 (mt/with-current-user user-id
-                  (do
-                    ;; Database is readable when: library enabled AND collection readable AND table is published
-                    ;; view-data permission should NOT affect can-read? for Database
-                    (is (= (and (contains? features :library)
-                                collection-readable?
-                                table-is-published?)
-                           (mi/can-read? :model/Database (mt/id))))))))))))))
+                  (is (= (and (contains? features :library)
+                              collection-readable?
+                              table-is-published?)
+                         (mi/can-read? :model/Database (mt/id)))))))))))))
