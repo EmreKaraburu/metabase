@@ -703,13 +703,15 @@
   ([model pk]
    (can-read? model pk)))
 
-;; only reached through the :can_read hydration key, never called by name
-#_{:clj-kondo/ignore [:unused-private-var]}
-(define-simple-hydration-method ^:private hydrate-can-read
-  :can_read
-  "Hydration method for `:can_read`."
-  [instance]
-  (can-read? instance))
+(methodical/defmethod t2.hydrate/needs-hydration? [:default :can_read]
+  "Whether `instance` lacks the answer `:can_read` hydration keeps in its metadata under `:can-read?`, out of the row."
+  [_model _k instance]
+  (nil? (:can-read? (meta instance))))
+
+(methodical/defmethod t2.hydrate/simple-hydrate [:default :can_read]
+  "Keep whether the current user can read `instance` in its metadata under `:can-read?`."
+  [_model _k instance]
+  (vary-meta instance assoc :can-read? (boolean (can-read? instance))))
 
 ;; only reached through the :can_write hydration key, never called by name
 #_{:clj-kondo/ignore [:unused-private-var]}

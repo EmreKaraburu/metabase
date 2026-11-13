@@ -1957,7 +1957,7 @@
         (is (true? (mi/can-read? collection)))
         (is (true? (mi/can-write? collection))))
       (testing "check returns hydrated flag"
-        (is (false? (mi/can-read? (assoc collection :can_read false))))
+        (is (false? (mi/can-read? (vary-meta collection assoc :can-read? false))))
         (is (false? (mi/can-write? (assoc collection :can_write false)))))
       (testing "hydration throws without columns it reads"
         (is (thrown-with-msg? clojure.lang.ExceptionInfo #"No :namespace is set for a Collection"

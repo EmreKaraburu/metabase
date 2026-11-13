@@ -388,9 +388,9 @@
   (perms/collection-permissions-for-user (current-user-info) (mapv :id collections) {:root-namespace nil}))
 
 (defn- hydrate-can-read
-  "Sets `:can_read` on each of `collections`, whether the current user reads it: the trash, and otherwise a Collection
-  that is not the hidden audit Collection, on which they have read permission or which is open to everyone. A root
-  Collection among them answers for itself."
+  "Keeps in the metadata of each of `collections`, under `:can-read?`, whether the current user reads it: the trash,
+  and otherwise a Collection that is not the hidden audit Collection, on which they have read permission or which is
+  open to everyone. A root Collection among them answers for itself."
   [collections]
   (let [rows        (into [] (remove #(or (nil? %) (collection.root/is-root-collection? %))) collections)
         _           (run! check-can-read-keys rows)
@@ -401,15 +401,15 @@
         nil
 
         (collection.root/is-root-collection? collection)
-        (assoc collection :can_read (boolean (mi/can-read? collection)))
+        (vary-meta collection assoc :can-read? (boolean (mi/can-read? collection)))
 
         :else
-        (assoc collection :can_read (boolean
-                                     (or (is-trash? collection)
-                                         (and (not (audit-collection-hidden? id))
-                                              (or (collection.root/unrestricted-snippets? collection)
-                                                  (perms/collection-permission-at-least? (get permissions id)
-                                                                                         :read))))))))))
+        (vary-meta collection assoc :can-read?
+                   (boolean
+                    (or (is-trash? collection)
+                        (and (not (audit-collection-hidden? id))
+                             (or (collection.root/unrestricted-snippets? collection)
+                                 (perms/collection-permission-at-least? (get permissions id) :read))))))))))
 
 (defn- hydrate-can-write
   "Sets `:can_write` on each of `collections`, whether the current user writes it: not the audit Collection, the trash
@@ -446,12 +446,12 @@
 
 (defmethod mi/can-read? :model/Collection
   ([collection]
-   (if-some [can-read (:can_read collection)]
+   (if-some [can-read (:can-read? (meta collection))]
      can-read
-     (:can_read (t2/hydrate collection :can_read))))
+     (:can-read? (meta (t2/hydrate collection :can_read)))))
   ([_model pk]
    (api/check-500 (some? pk) "No Collection id: use the root Collection for a nil one.")
-   (:can_read (t2/hydrate (api/check-404 (collections.db/collection pk)) :can_read))))
+   (mi/can-read? (api/check-404 (collections.db/collection pk)))))
 
 (defmethod mi/can-write? :model/Collection
   ([collection]
@@ -1293,7 +1293,7 @@
     (some->> (effective-location-path collection)
              location-path->ids
              (keep collection-id->collection)
-             (filter :can_read)
+             (filter mi/can-read?)
              (map #(t2/instance :model/Collection (select-keys % [:name :id :personal_owner_id :type :can_write])))
              (concat (let [root (root-collection-with-ui-details (:namespace collection))]
                        (when (mi/can-read? root)
