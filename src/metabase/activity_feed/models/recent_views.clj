@@ -373,7 +373,7 @@
     []
     (let [;; these have their parent collection id in effective_location, but we need the id, name, and authority_level.
           collections (activity-feed.db/unarchived-collections-with-details collection-ids)]
-      (->> (t2/hydrate collections :effective_parent)
+      (->> (t2/hydrate collections :effective_parent :can_read :can_write)
            (map #(m/dissoc-in % [:effective_parent :type]))))))
 
 (defmethod fill-recent-view-info :collection [{:keys [_model model_id timestamp model_object]}]

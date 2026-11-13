@@ -1778,20 +1778,20 @@
                                   audit/default-custom-reports-collection (constantly cr-collection)]
         (mt/with-current-user (mt/user->id :crowberto)
           (mt/with-additional-premium-features #{:audit-app}
-            (is (not (mi/can-write? audit-collection))
+            (is (not (mi/can-write? (t2/hydrate audit-collection :can_write)))
                 "Admin isn't able to write to audit collection")
             (is (not (mi/can-write? audit-card))
                 "Admin isn't able to write to audit collection card")
             (is (not (mi/can-write? audit-dashboard))
                 "Admin isn't able to write to audit collection dashboard"))
           (mt/with-premium-features #{}
-            (is (not (mi/can-read? audit-collection))
+            (is (not (mi/can-read? (t2/hydrate audit-collection :can_read)))
                 "Admin isn't able to read audit collection when audit app isn't enabled")
             (is (not (mi/can-read? audit-card))
                 "Admin isn't able to read audit collection card when audit app isn't enabled")
             (is (not (mi/can-read? audit-dashboard))
                 "Admin isn't able to read audit collection dashboard when audit app isn't enabled")
-            (is (not (mi/can-read? cr-collection))
+            (is (not (mi/can-read? (t2/hydrate cr-collection :can_read)))
                 "Admin isn't able to read custom reports collection when audit app isn't enabled")
             (is (not (mi/can-read? cr-card))
                 "Admin isn't able to read custom reports card when audit app isn't enabled")
@@ -1944,11 +1944,22 @@
   (testing "Only administrators write a collection of the data apps namespace"
     (mt/with-temp [:model/Collection collection {:namespace "data-apps"}]
       (mt/with-test-user :crowberto
-        (is (true? (mi/can-write? collection)))
+        (is (true? (mi/can-write? (t2/hydrate collection :can_write))))
         (is (true? (mi/can-write? :model/Collection (:id collection)))))
       (mt/with-test-user :rasta
-        (is (false? (mi/can-write? collection)))
+        (is (false? (mi/can-write? (t2/hydrate collection :can_write))))
         (is (false? (mi/can-write? :model/Collection (:id collection))))))))
+
+(deftest unhydrated-collection-check-throws-test
+  (mt/with-temp [:model/Collection collection {}]
+    (mt/with-test-user :rasta
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"No :can_read is hydrated on a Collection"
+                            (mi/can-read? collection)))
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"No :can_write is hydrated on a Collection"
+                            (mi/can-write? collection)))
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"No :namespace is set for a Collection"
+                            (t2/hydrate (t2/select-one [:model/Collection :id :type] :id (:id collection))
+                                        :can_read))))))
 
 (deftest create-library
   (mt/with-empty-h2-app-db!
@@ -1957,13 +1968,12 @@
         (is (= "Library" (:name library)))
         (is (= ["Data" "Metrics"] (sort (map :name (collection/descendants library)))))
         (testing "Only admins can write to the library, all users can read"
-          (binding [api/*current-user*                 (mt/user->id :rasta)
-                    api/*current-user-permissions-set* (-> :rasta mt/user->id perms/user-permissions-set atom)]
-            (is (true? (mi/can-read? library)))
-            (is (false? (mi/can-write? library)))
-            (doseq [sub (collection/descendants library)]
-              (is (true? (mi/can-read? sub)))
-              (is (false? (mi/can-write? sub))))))))
+          (mt/with-current-user (mt/user->id :rasta)
+            (is (true? (mi/can-read? :model/Collection (:id library))))
+            (is (false? (mi/can-write? :model/Collection (:id library))))
+            (doseq [{sub-id :id} (collection/descendants library)]
+              (is (true? (mi/can-read? :model/Collection sub-id)))
+              (is (false? (mi/can-write? :model/Collection sub-id))))))))
     (testing "Creating a Layer when one already exists throws an exception"
       (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Semantic layer already exists" (collection/create-library-collection!))))
     ;;cleanup created libraries

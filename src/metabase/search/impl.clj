@@ -436,11 +436,23 @@
         ;; key instead — one extra query per result row.
         (cond-> (t2/instance-of? :model/Card instance) (assoc :document_id nil)))))
 
+(defn- hydrate-collections-can-write
+  "Sets `:can_write` on the Collections among `results`, answered together for the user of `search-ctx`."
+  [{:keys [current-user-id current-user-perms]} results]
+  (let [ids       (into [] (comp (filter #(t2/instance-of? :model/Collection %)) (map :id) (distinct)) results)
+        can-write (if (seq ids)
+                    (ensure-current-user-perms-set-is-bound current-user-id current-user-perms
+                      (into {} (map (juxt :id :can_write))
+                            (t2/hydrate (search.db/collection-permission-rows ids) :can_write)))
+                    {})]
+    (map #(cond-> % (t2/instance-of? :model/Collection %) (assoc :can_write (boolean (get can-write (:id %)))))
+         results)))
+
 (defn check-result-permissions
   "Run the post-query permission check on a single raw engine result map (the rehydrated shape an engine's
   `results` produces). Returns a boolean. Public for the search debug API."
   [search-ctx result]
-  (check-permissions-for-model search-ctx (normalize-result result)))
+  (check-permissions-for-model search-ctx (first (hydrate-collections-can-write search-ctx [(normalize-result result)]))))
 
 (defn- add-can-write [search-ctx row]
   (cond
@@ -499,6 +511,7 @@
                             (:include-metadata? search-ctx) (add-metadata)
                             (:model-ancestors? search-ctx) (add-dataset-collection-hierarchy)
                             true (add-collection-effective-location)
+                            true (hydrate-collections-can-write search-ctx)
                             true (map (partial add-can-write search-ctx))
                             true (map serialize)
                             ;; Realize within the enclosing tracing span so hydration and
@@ -532,6 +545,10 @@
         xf                (comp
                            (take search.config/*db-max-results*)
                            (map normalize-result)
+                           (partition-all 500)
+                           (mapcat (if (:archived? search-ctx)
+                                     (partial hydrate-collections-can-write search-ctx)
+                                     identity))
                            (filter (partial check-permissions-for-model search-ctx))
                            (map (partial normalize-result-more search-ctx))
                            (keep #(search.engine/score scoring-ctx %)))]
