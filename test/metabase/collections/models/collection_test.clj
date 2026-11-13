@@ -822,6 +822,22 @@
 ;;           |
 ;;           +-> F -> G
 
+(defn perms-path-ids->names
+  "Given a set of permissions and `collections` (the map returned by the `with-collection-hierarchy` macro above, or a
+  sequential collection), replace the numeric IDs in the permissions paths with corresponding Collection names, making
+  our tests easier to read."
+  [collections perms-set]
+  ;; first build a function that will replace any instances of numeric IDs with their respective names
+  ;; e.g. /123/ would become something like /A/
+  ;; Do this by composing together a series of functions that will handle one string replacement for each ID + name
+  ;; pair
+  (let [replace-ids-with-names (reduce comp identity (for [{:keys [id name]} (if (sequential? collections)
+                                                                               collections
+                                                                               (vals collections))]
+                                                       #(str/replace % (re-pattern (format "/%d/" id)) (str "/" name "/"))))]
+    (set (for [perms-path perms-set]
+           (replace-ids-with-names perms-path)))))
+
 (defn- collection-ids->names
   "The names of the Collections of `collections`, a map of test Collections, with `collection-ids`."
   [collections collection-ids]
