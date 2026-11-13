@@ -656,13 +656,15 @@
 
 (mu/defn adhoc-action :- ::actions.schema/action.for-insert
   "The ad-hoc `action`, built without saving it: an implicit one with its parameters derived from its Table, and a query
-  one writing to the database of its query."
+  one writing to the database of its query. It has the `:collection_id` and `:model_id` its checks read, nil when not
+  given."
   [action :- ::actions.schema/action.adhoc]
-  (t2/instance :model/Action
-               (if (= :implicit (keyword (:type action)))
-                 (first (enrich-actions-with-implicit-params
-                         [(merge {:visualization_settings {}} action)]))
-                 (assoc action :database_id (get-in action [:dataset_query :database])))))
+  (let [action (merge {:collection_id nil, :model_id nil} action)]
+    (t2/instance :model/Action
+                 (if (= :implicit (keyword (:type action)))
+                   (first (enrich-actions-with-implicit-params
+                           [(merge {:visualization_settings {}} action)]))
+                   (assoc action :database_id (get-in action [:dataset_query :database]))))))
 
 (mu/defn select-actions :- [:maybe [:sequential ::actions.schema/action]]
   "Find actions with given options and generate implicit parameters for execution. Also adds the `:database_id` of the
