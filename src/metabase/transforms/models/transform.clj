@@ -91,7 +91,7 @@
   ([instance]
    (transform-deletable? instance nil))
   ([instance models-cache]
-   (and (remote-sync/can-write? :model/Transform (:id instance))
+   (and (not (remote-sync/read-only?))
         (transform-writable? instance models-cache))))
 
 (defmethod mi/can-read? :model/Transform
@@ -120,7 +120,7 @@
   (and (transform-writable? instance)
        (transform-writable? (merge instance changes))
        (or (not (remote-sync/synced-changes? :model/Transform instance changes))
-           (remote-sync/can-write? :model/Transform (:id instance)))))
+           (not (remote-sync/read-only?)))))
 
 (defmethod mi/can-create? :model/Transform
   [_model instance]

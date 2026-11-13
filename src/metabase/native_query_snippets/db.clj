@@ -30,16 +30,6 @@
   [id :- ::lib.schema.id/native-query-snippet]
   (t2/select-one :model/NativeQuerySnippet :id id))
 
-(mu/defn writable-snippet-ids :- [:set ::lib.schema.id/native-query-snippet]
-  "The ids among `ids` of the NativeQuerySnippets remote sync lets be written."
-  [ids :- [:sequential ::lib.schema.id/native-query-snippet]]
-  (if (seq ids)
-    (set (t2/select-pks-set :model/NativeQuerySnippet
-                            {:where [:and
-                                     [:in :id ids]
-                                     (remote-sync/can-write-filter-clause :model/NativeQuerySnippet :native_query_snippet)]}))
-    #{}))
-
 (mu/defn snippet-name-exists?
   "Whether a NativeQuerySnippet named `snippet-name` exists."
   [snippet-name :- :string]

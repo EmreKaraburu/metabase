@@ -108,7 +108,7 @@
 
 (defmethod mi/can-write? :model/TransformTest
   ([instance]
-   (and (remote-sync/can-write? :model/TransformTest (:id instance))
+   (and (not (remote-sync/read-only?))
         (can-save? (:transform_id instance))))
   ([_model pk]
    (when-let [transform-test (data-testing.db/transform-test pk)]
@@ -126,7 +126,7 @@
           native?    (memoize can-run-native-query?)]
       (into {}
             (map (fn [{:keys [id transform_id]}]
-                   [id (and (remote-sync/can-write? :model/TransformTest id)
+                   [id (and (not (remote-sync/read-only?))
                             (let [transform (get transforms transform_id)]
                               (can-save-for-transform? transform (:can_write transform) native?)))]))
             (remove nil? transform-tests)))
@@ -142,7 +142,7 @@
   (and (can-save? (:transform_id instance))
        (can-save? (:transform_id changes (:transform_id instance)))
        (or (not (remote-sync/synced-changes? :model/TransformTest instance changes))
-           (remote-sync/can-write? :model/TransformTest (:id instance)))))
+           (not (remote-sync/read-only?)))))
 
 ;;; -------------------------------------------------- Revisions ---------------------------------------------------
 

@@ -1,5 +1,7 @@
 (ns metabase.warehouse-schema.models.field
   (:require
+   [metabase.collections.models.collection :as collection]
+   [metabase.api.common :as api]
    [clojure.string :as str]
    [medley.core :as m]
    [metabase.api.common :as api]
@@ -234,7 +236,7 @@
   [instance]
   (let [table (or (:table instance)
                   (warehouse-schema.db/table (:table_id instance)))]
-    (and (remote-sync/can-write? :model/TableUserSettings (:id table))
+    (and (collection/remote-sync-writable-table? table)
          (mi/superuser?))))
 
 (defmethod mi/can-write? :model/Field

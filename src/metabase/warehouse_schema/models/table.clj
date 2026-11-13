@@ -370,7 +370,7 @@
   read-only instance syncs it."
   metabase-enterprise.advanced-permissions.common
   [instance]
-  (and (remote-sync/can-write? :model/TableUserSettings (:id instance))
+  (and (collection/remote-sync-writable-table? instance)
        (mi/superuser?)))
 
 (methodical/defmethod t2/batched-hydrate [:model/Table :can-write?]

@@ -111,7 +111,7 @@
      (and (or (mi/superuser?)
               (and (api/entitled-data-analyst?)
                    (perms/user-has-permission-for-tables? (perms/user-info api/*current-user-id*) :perms/view-data :unrestricted {(u/the-id table) (:db_id table)})))
-          (remote-sync/can-write? :model/TableUserSettings (:id table)))))
+          (collection/remote-sync-writable-table? table))))
   ([_model pk]
    (mi/can-write? (t2/hydrate (segments.db/segment pk) :can-write?))))
 
@@ -126,7 +126,7 @@
     (and (or (mi/superuser?)
              (and (api/entitled-data-analyst?)
                   (perms/user-has-permission-for-tables? (perms/user-info api/*current-user-id*) :perms/view-data :unrestricted {(u/the-id table) (:db_id table)})))
-         (remote-sync/can-write? :model/TableUserSettings (:id table)))))
+         (collection/remote-sync-writable-table? table))))
 
 (methodical/defmethod t2/batched-hydrate [:model/Segment :can_write]
   "Batched hydration for :can_write on segments, hydrating their tables first."

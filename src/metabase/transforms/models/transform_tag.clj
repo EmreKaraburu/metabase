@@ -33,7 +33,7 @@
 
 (defmethod mi/can-write? :model/TransformTag
   ([instance]
-   (and (remote-sync/can-write? :model/TransformTag (:id instance))
+   (and (not (remote-sync/read-only?))
         (or api/*is-superuser?*
             (and (api/entitled-data-analyst?)
                  (let [transforms (transform/transforms-with-tags [(:id instance)])]

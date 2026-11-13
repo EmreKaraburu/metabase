@@ -1,5 +1,6 @@
 (ns metabase-enterprise.advanced-permissions.common
   (:require
+   [metabase.collections.models.collection :as collection]
    [metabase-enterprise.advanced-permissions.db :as advanced-permissions.db]
    [metabase.api.common :as api]
    [metabase.audit-app.core :as audit]
@@ -16,7 +17,7 @@
   [instance]
   (let [table (or (:table instance)
                   (advanced-permissions.db/table (:table_id instance)))]
-    (and (remote-sync/can-write? :model/TableUserSettings (:id table))
+    (and (collection/remote-sync-writable-table? table)
          (let [db-id (or (:db_id table)
                          (database/table-id->database-id (:table_id instance)))]
            (perms/user-has-permission-for-tables? (perms/user-info api/*current-user-id*) :perms/manage-table-metadata :yes {(:table_id instance) db-id})))))
@@ -39,7 +40,7 @@
   instance syncs it."
   :feature :advanced-permissions
   [table]
-  (and (remote-sync/can-write? :model/TableUserSettings (:id table))
+  (and (collection/remote-sync-writable-table? table)
        (perms/user-has-permission-for-tables? (perms/user-info api/*current-user-id*) :perms/manage-table-metadata :yes {(:id table) (:db_id table)})))
 
 (defn with-advanced-permissions
